@@ -14,7 +14,7 @@ organizations:
     url: #https://www.stanford.edu/
 
 # Short bio (displayed in user profile at end of posts)
-bio: My research interests include causal inference methodology as well as treatment and preventative strategies for dementia and psychiatric disorders
+bio: My research interests include causal inference methodology and treatment and preventative strategies for dementia and psychiatric disorders
 
 # Interests to show in About widget
 #interests:
