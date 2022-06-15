@@ -1,1 +1,1 @@
-Repository for personal website/blog: [https://lachlancribb.netlify.app] (https://lachlancribb.netlify.app)
+Repository for personal website/blog: https://lachlancribb.netlify.app
