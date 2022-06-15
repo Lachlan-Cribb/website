@@ -1,1 +1,0 @@
-Repository for personal website/blog: https://lachlancribb.netlify.app
