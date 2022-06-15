@@ -67,4 +67,4 @@ social:
 #highlight_name: true
 ---
 
-I am an epidemiologist/biostatistician currently working in the epidemiology of dementia and psychiatric disorders. My main interests are in using causal inference methods in RCTs and observational studies to guide public health interventions for these conditions. 
+I am an epidemiologist currently working in the epidemiology of dementia and psychiatric disorders. My main interests are in using causal inference methods in RCTs and observational studies to guide public health interventions for these conditions. 
