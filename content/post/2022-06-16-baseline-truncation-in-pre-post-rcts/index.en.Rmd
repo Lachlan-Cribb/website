@@ -234,12 +234,12 @@ sim.4.16 <- tibble(seed = 1:2000) %>%
   unnest(tidy)
 
 # rho = .7
-sim.8.16 <- tibble(seed = 1:2000) %>% 
+sim.7.16 <- tibble(seed = 1:2000) %>% 
   mutate(tidy = map(seed, sim_fit, rho = .7,
                     threshold = 16, n = 160)) %>% 
   unnest(tidy)
 
-sim.8.20 <- tibble(seed = 1:2000) %>% 
+sim.7.20 <- tibble(seed = 1:2000) %>% 
   mutate(tidy = map(seed, sim_fit, rho = .7,
                     threshold = 20, n = 300)) %>% 
   unnest(tidy)
@@ -253,8 +253,8 @@ The bias in the estimation of the treatment effect is displayed for each of the 
 bind_rows(
   sim.4.16 %>% mutate(rho = .4, threshold = 16), 
   sim.4.20 %>% mutate(rho = .4, threshold = 20), 
-  sim.8.16 %>% mutate(rho = .8, threshold = 16),
-  sim.8.20 %>% mutate(rho = .8, threshold = 20)) %>% 
+  sim.7.16 %>% mutate(rho = .7, threshold = 16),
+  sim.7.20 %>% mutate(rho = .7, threshold = 20)) %>% 
   mutate(type = str_c(model, ", ", method),
          rho = str_c("rho==", rho),
          threshold = str_c("threshold ==", threshold)) %>%
@@ -283,8 +283,8 @@ The efficiency (standard error of the treatment effect) is displayed for each of
 bind_rows(
   sim.4.16 %>% mutate(rho = .4, threshold = 16), 
   sim.4.20 %>% mutate(rho = .4, threshold = 20), 
-  sim.8.16 %>% mutate(rho = .8, threshold = 16),
-  sim.8.20 %>% mutate(rho = .8, threshold = 20)) %>% 
+  sim.7.16 %>% mutate(rho = .7, threshold = 16),
+  sim.7.20 %>% mutate(rho = .7, threshold = 20)) %>% 
   mutate(type = str_c(model, ", ", method),
          rho = str_c("rho==", rho),
          threshold = str_c("threshold ==", threshold)) %>% 
@@ -312,8 +312,8 @@ Lastly, the percentage coverage of the 95% CI for each model type is compared. H
 bind_rows(
   sim.4.16 %>% mutate(rho = .4, threshold = 16), 
   sim.4.20 %>% mutate(rho = .4, threshold = 20), 
-  sim.8.16 %>% mutate(rho = .8, threshold = 16),
-  sim.8.20 %>% mutate(rho = .8, threshold = 20)) %>% 
+  sim.7.16 %>% mutate(rho = .7, threshold = 16),
+  sim.7.20 %>% mutate(rho = .7, threshold = 20)) %>% 
   mutate(type = str_c(model, ", ", method),
          rho = str_c("rho==", rho),
          threshold = str_c("threshold =", threshold)) %>% 

@@ -199,12 +199,12 @@ sim.4.16 &lt;- tibble(seed = 1:2000) %&gt;%
   unnest(tidy)
 
 # rho = .7
-sim.8.16 &lt;- tibble(seed = 1:2000) %&gt;% 
+sim.7.16 &lt;- tibble(seed = 1:2000) %&gt;% 
   mutate(tidy = map(seed, sim_fit, rho = .7,
                     threshold = 16, n = 160)) %&gt;% 
   unnest(tidy)
 
-sim.8.20 &lt;- tibble(seed = 1:2000) %&gt;% 
+sim.7.20 &lt;- tibble(seed = 1:2000) %&gt;% 
   mutate(tidy = map(seed, sim_fit, rho = .7,
                     threshold = 20, n = 300)) %&gt;% 
   unnest(tidy)</code></pre>
@@ -215,8 +215,8 @@ sim.8.20 &lt;- tibble(seed = 1:2000) %&gt;%
 <pre class="r"><code>bind_rows(
   sim.4.16 %&gt;% mutate(rho = .4, threshold = 16), 
   sim.4.20 %&gt;% mutate(rho = .4, threshold = 20), 
-  sim.8.16 %&gt;% mutate(rho = .8, threshold = 16),
-  sim.8.20 %&gt;% mutate(rho = .8, threshold = 20)) %&gt;% 
+  sim.7.16 %&gt;% mutate(rho = .7, threshold = 16),
+  sim.7.20 %&gt;% mutate(rho = .7, threshold = 20)) %&gt;% 
   mutate(type = str_c(model, &quot;, &quot;, method),
          rho = str_c(&quot;rho==&quot;, rho),
          threshold = str_c(&quot;threshold ==&quot;, threshold)) %&gt;%
@@ -241,8 +241,8 @@ sim.8.20 &lt;- tibble(seed = 1:2000) %&gt;%
 bind_rows(
   sim.4.16 %&gt;% mutate(rho = .4, threshold = 16), 
   sim.4.20 %&gt;% mutate(rho = .4, threshold = 20), 
-  sim.8.16 %&gt;% mutate(rho = .8, threshold = 16),
-  sim.8.20 %&gt;% mutate(rho = .8, threshold = 20)) %&gt;% 
+  sim.7.16 %&gt;% mutate(rho = .7, threshold = 16),
+  sim.7.20 %&gt;% mutate(rho = .7, threshold = 20)) %&gt;% 
   mutate(type = str_c(model, &quot;, &quot;, method),
          rho = str_c(&quot;rho==&quot;, rho),
          threshold = str_c(&quot;threshold ==&quot;, threshold)) %&gt;% 
@@ -264,8 +264,8 @@ bind_rows(
 <pre class="r"><code>bind_rows(
   sim.4.16 %&gt;% mutate(rho = .4, threshold = 16), 
   sim.4.20 %&gt;% mutate(rho = .4, threshold = 20), 
-  sim.8.16 %&gt;% mutate(rho = .8, threshold = 16),
-  sim.8.20 %&gt;% mutate(rho = .8, threshold = 20)) %&gt;% 
+  sim.7.16 %&gt;% mutate(rho = .7, threshold = 16),
+  sim.7.20 %&gt;% mutate(rho = .7, threshold = 20)) %&gt;% 
   mutate(type = str_c(model, &quot;, &quot;, method),
          rho = str_c(&quot;rho==&quot;, rho),
          threshold = str_c(&quot;threshold =&quot;, threshold)) %&gt;% 
