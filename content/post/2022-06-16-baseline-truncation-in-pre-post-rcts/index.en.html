@@ -259,8 +259,8 @@ bind_rows(
         legend.position = &quot;none&quot;) +
   facet_wrap(vars(rho, threshold), labeller = label_parsed)</code></pre>
 <p><img src="{{< blogdown/postref >}}index.en_files/figure-html/unnamed-chunk-9-1.png" width="672" /></p>
-<p>There is a clear distinction here in the results between ours and those of SK’s original simulation. That is, the LMM ANCOVA method stands out as being the most efficient, particularly when baseline truncation is strong.</p>
-<p>Lastly, the percentage coverage of the 95% CI for each model type is compared:</p>
+<p>One thing is clearly similar between this and SK’s original simultaion: the ANCOVA and LMM ANCOVA models clearly beat the change models in terms of efficiency, especially when pre-post correlation is relatively low. There is also a major difference. That is, the LMM ANCOVA method stands out as being the most efficient, particularly when baseline truncation is strong.</p>
+<p>Lastly, the percentage coverage of the 95% CI for each model type is compared. Horizontal lines are added at 94.5% and 95.5% to capture a reasonable margin of error.</p>
 <pre class="r"><code>bind_rows(
   sim.4.16 %&gt;% mutate(rho = .4, threshold = 16), 
   sim.4.20 %&gt;% mutate(rho = .4, threshold = 20), 
@@ -276,12 +276,14 @@ bind_rows(
   mutate(coverage = n/sum(n) * 100) %&gt;% 
   filter(covered == 1) %&gt;% 
   ggplot(aes(x = type, y = coverage, colour = threshold)) +
+  geom_hline(aes(yintercept = 94), colour = &quot;grey&quot;) +
+  geom_hline(aes(yintercept = 96), colour = &quot;grey&quot;) +
   geom_point(position = position_dodge(0.25)) +
   facet_wrap(~rho, labeller = label_parsed) +
   theme(axis.text.x = element_text(angle = 90)) +
   ylim(c(85,100)) +
   labs(y = &quot;Coverage %&quot;, x = &quot;&quot;)</code></pre>
 <p><img src="{{< blogdown/postref >}}index.en_files/figure-html/unnamed-chunk-10-1.png" width="672" /></p>
-<p>Under most conditions, each of the methods produces intervals with nominal coverage. Notably, however, the ANCOVA LMM method tends to produce confidence intervals which are somewhat too narrow. And this seems to be worse as the degree of baseline truncation increases.</p>
-<p>Why truncation appears to produce overly confident inferences from the ANCOVA LMM but not the typical LMM is, to me, a mystery. This is not the conclusion I was expecting to reach. Nonetheless, it does seem that, under these very specific conditions, typical OLS ANCOVA is a safe bet. It would be interesting to extend these simulations to include missing data, distributional oddities, measurement issues etc, and see how and when that conclusion might change.</p>
+<p>Under most conditions, each of the methods produces intervals with nominal coverage. Notably, however, the ANCOVA LMM method tends to produce confidence intervals which are somewhat too narrow. And this seems to be worse in cases of low pre-post correlation and when the degree of baseline truncation is large.</p>
+<p>Why truncation appears to produce overly confident inferences from the ANCOVA LMM in particular is, to me, a mystery. Nonetheless, it does seem that, under these very specific conditions, typical OLS ANCOVA is a safe bet. It would be interesting to extend these simulations to include missing data, distributional oddities, measurement issues etc, and see how and when that conclusion might change.</p>
 </div>
