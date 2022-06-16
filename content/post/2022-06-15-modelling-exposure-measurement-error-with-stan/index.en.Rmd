@@ -91,16 +91,18 @@ The first method, which is perhaps the most often used (and simplest), takes a s
 
 d$mean_x <- rowMeans(d[,3:4])
 
-broom::tidy(lm(y ~ mean_x, data = d))
+res_mean <- broom::tidy(lm(y ~ mean_x, data = d), conf.int=T)[2,]
 
+res_mean
 ```
 
 By contrast, here is the estimated coefficient for the simulated x (measured without error): 
 
 ```{r no error}
 
-broom::tidy(lm(y ~ x_no_error, data = d))
+res_no_error <- broom::tidy(lm(y ~ x_no_error, data = d), conf.int=T)[2,]
 
+res_no_error
 ```
 
 The regression coefficient for mean_x, the average of the two x measurements, is clearly attenuated towards zero compared to the x variable measured without error. \n
@@ -271,15 +273,41 @@ summarise_draws(samp2$draws(c("alpha", "beta", "sigma_x", "mu_truex", "sd_truex"
 
 ```
 
-This model seems to do much better than the two previous. The estimated regression coefficient is much closer to that of x_no_error. 
+This model seems to do much better than the two previous. The estimated regression coefficient is much closer (in fact almost exactly) to that of x_no_error. 
 
 Compare with regression using the x_no_error variable and one using a simple average of the replicated measurements: 
 
 ```{r compare2}
 
-broom::tidy(lm(y ~ x_no_error, data = d))
+res_mean <- 
+  res_mean %>% 
+  mutate(term = recode(term, 'mean_x' = 'model 1 - mean x'))
 
-broom::tidy(lm(y ~ mean_x, data = d))
+res_bmod1 <- 
+  samp$summary("beta", ~quantile(.x, c(0.025, 0.5, 0.975))) %>% 
+  rename(term = variable, conf.low = `2.5%`, 
+         estimate = `50%`, conf.high = `97.5%`) %>% 
+  mutate(term = recode(term, 'beta' = 'model2 - flat priors'))
+
+res_bmod2 <- 
+  samp2$summary("beta", ~quantile(.x, c(0.025, 0.5, 0.975))) %>% 
+  rename(term = variable, conf.low = `2.5%`, 
+         estimate = `50%`, conf.high = `97.5%`) %>% 
+  mutate(term = recode(term, 'beta' = 'model3 - hierarchical prior'))
+
+
+bind_rows(
+  res_bmod1,
+  res_bmod2,
+  res_mean %>% select(term, estimate, conf.low, conf.high),
+  res_no_error %>% select(term, estimate, conf.low, conf.high),
+) %>% 
+  ggplot(aes(x = estimate, y = term)) +
+  geom_pointrange(aes(xmin = conf.low, xmax = conf.high)) +
+  bayesplot::theme_default() +
+  labs(y = "", x = "\n Estimate and 95% interval") +
+  xlim(c(0,1))
+
 
 ```
 

@@ -65,19 +65,21 @@ d &lt;- tibble(
 <p>The first method, which is perhaps the most often used (and simplest), takes a simple average of the replicated measurements and uses that as data in the model for y. Here are the results for this method:</p>
 <pre class="r"><code>d$mean_x &lt;- rowMeans(d[,3:4])
 
-broom::tidy(lm(y ~ mean_x, data = d))</code></pre>
-<pre><code>## # A tibble: 2 × 5
-##   term        estimate std.error statistic      p.value
-##   &lt;chr&gt;          &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;        &lt;dbl&gt;
-## 1 (Intercept)  -0.0224    0.0568    -0.395 0.693       
-## 2 mean_x        0.257     0.0469     5.47  0.0000000941</code></pre>
+res_mean &lt;- broom::tidy(lm(y ~ mean_x, data = d), conf.int=T)[2,]
+
+res_mean</code></pre>
+<pre><code>## # A tibble: 1 × 7
+##   term   estimate std.error statistic      p.value conf.low conf.high
+##   &lt;chr&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;        &lt;dbl&gt;    &lt;dbl&gt;     &lt;dbl&gt;
+## 1 mean_x    0.257    0.0469      5.47 0.0000000941    0.164     0.349</code></pre>
 <p>By contrast, here is the estimated coefficient for the simulated x (measured without error):</p>
-<pre class="r"><code>broom::tidy(lm(y ~ x_no_error, data = d))</code></pre>
-<pre><code>## # A tibble: 2 × 5
-##   term        estimate std.error statistic  p.value
-##   &lt;chr&gt;          &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt;
-## 1 (Intercept)  0.00105    0.0554    0.0190 9.85e- 1
-## 2 x_no_error   0.400      0.0574    6.98   1.95e-11</code></pre>
+<pre class="r"><code>res_no_error &lt;- broom::tidy(lm(y ~ x_no_error, data = d), conf.int=T)[2,]
+
+res_no_error</code></pre>
+<pre><code>## # A tibble: 1 × 7
+##   term       estimate std.error statistic  p.value conf.low conf.high
+##   &lt;chr&gt;         &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;     &lt;dbl&gt;
+## 1 x_no_error    0.400    0.0574      6.98 1.95e-11    0.287     0.513</code></pre>
 <p>The regression coefficient for mean_x, the average of the two x measurements, is clearly attenuated towards zero compared to the x variable measured without error. </p>
 </div>
 <div id="model-2---bayesian-model-with-flat-priors" class="section level3">
@@ -128,14 +130,14 @@ model {
 )</code></pre>
 <pre><code>## Running MCMC with 4 parallel chains...
 ## 
-## Chain 2 finished in 4.0 seconds.
-## Chain 1 finished in 4.7 seconds.
-## Chain 3 finished in 4.7 seconds.
-## Chain 4 finished in 4.7 seconds.
+## Chain 2 finished in 4.1 seconds.
+## Chain 1 finished in 4.9 seconds.
+## Chain 3 finished in 4.9 seconds.
+## Chain 4 finished in 5.0 seconds.
 ## 
 ## All 4 chains finished successfully.
-## Mean chain execution time: 4.5 seconds.
-## Total execution time: 4.9 seconds.</code></pre>
+## Mean chain execution time: 4.8 seconds.
+## Total execution time: 5.1 seconds.</code></pre>
 <p>Here are the estimates from the model.</p>
 <pre class="r"><code>summarise_draws(samp$draws(c(&quot;alpha&quot;, &quot;beta&quot;, &quot;sigma_x&quot;)))</code></pre>
 <pre><code>## # A tibble: 3 × 10
@@ -217,14 +219,14 @@ model {
 )</code></pre>
 <pre><code>## Running MCMC with 4 parallel chains...
 ## 
-## Chain 1 finished in 4.9 seconds.
-## Chain 3 finished in 4.9 seconds.
-## Chain 2 finished in 5.0 seconds.
-## Chain 4 finished in 5.0 seconds.
+## Chain 1 finished in 4.7 seconds.
+## Chain 3 finished in 4.7 seconds.
+## Chain 2 finished in 4.7 seconds.
+## Chain 4 finished in 4.8 seconds.
 ## 
 ## All 4 chains finished successfully.
-## Mean chain execution time: 4.9 seconds.
-## Total execution time: 5.0 seconds.</code></pre>
+## Mean chain execution time: 4.7 seconds.
+## Total execution time: 4.9 seconds.</code></pre>
 <p>Here are the estimates from this model using a hierarchical prior. Also presented are the estimated mean and standard deviation of the population true_x (i.e., the prior for each individual’s true_x, which was estimated from the data).</p>
 <pre class="r"><code>summarise_draws(samp2$draws(c(&quot;alpha&quot;, &quot;beta&quot;, &quot;sigma_x&quot;, &quot;mu_truex&quot;, &quot;sd_truex&quot;)))</code></pre>
 <pre><code>## # A tibble: 5 × 10
@@ -235,19 +237,36 @@ model {
 ## 3 sigma_x   1.01    1.01   0.0421 0.0420  0.948 1.09    1.00    6886.    8854.
 ## 4 mu_truex -0.0647 -0.0652 0.0690 0.0698 -0.178 0.0489  1.00   13459.    9752.
 ## 5 sd_truex  0.971   0.971  0.0652 0.0639  0.866 1.08    1.00    5361.    6270.</code></pre>
-<p>This model seems to do much better than the two previous. The estimated regression coefficient is much closer to that of x_no_error.</p>
+<p>This model seems to do much better than the two previous. The estimated regression coefficient is much closer (in fact almost exactly) to that of x_no_error.</p>
 <p>Compare with regression using the x_no_error variable and one using a simple average of the replicated measurements:</p>
-<pre class="r"><code>broom::tidy(lm(y ~ x_no_error, data = d))</code></pre>
-<pre><code>## # A tibble: 2 × 5
-##   term        estimate std.error statistic  p.value
-##   &lt;chr&gt;          &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt;
-## 1 (Intercept)  0.00105    0.0554    0.0190 9.85e- 1
-## 2 x_no_error   0.400      0.0574    6.98   1.95e-11</code></pre>
-<pre class="r"><code>broom::tidy(lm(y ~ mean_x, data = d))</code></pre>
-<pre><code>## # A tibble: 2 × 5
-##   term        estimate std.error statistic      p.value
-##   &lt;chr&gt;          &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;        &lt;dbl&gt;
-## 1 (Intercept)  -0.0224    0.0568    -0.395 0.693       
-## 2 mean_x        0.257     0.0469     5.47  0.0000000941</code></pre>
+<pre class="r"><code>res_mean &lt;- 
+  res_mean %&gt;% 
+  mutate(term = recode(term, &#39;mean_x&#39; = &#39;model 1 - mean x&#39;))
+
+res_bmod1 &lt;- 
+  samp$summary(&quot;beta&quot;, ~quantile(.x, c(0.025, 0.5, 0.975))) %&gt;% 
+  rename(term = variable, conf.low = `2.5%`, 
+         estimate = `50%`, conf.high = `97.5%`) %&gt;% 
+  mutate(term = recode(term, &#39;beta&#39; = &#39;model2 - flat priors&#39;))
+
+res_bmod2 &lt;- 
+  samp2$summary(&quot;beta&quot;, ~quantile(.x, c(0.025, 0.5, 0.975))) %&gt;% 
+  rename(term = variable, conf.low = `2.5%`, 
+         estimate = `50%`, conf.high = `97.5%`) %&gt;% 
+  mutate(term = recode(term, &#39;beta&#39; = &#39;model3 - hierarchical prior&#39;))
+
+
+bind_rows(
+  res_bmod1,
+  res_bmod2,
+  res_mean %&gt;% select(term, estimate, conf.low, conf.high),
+  res_no_error %&gt;% select(term, estimate, conf.low, conf.high),
+) %&gt;% 
+  ggplot(aes(x = estimate, y = term)) +
+  geom_pointrange(aes(xmin = conf.low, xmax = conf.high)) +
+  bayesplot::theme_default() +
+  labs(y = &quot;&quot;, x = &quot;\n Estimate and 95% interval&quot;) +
+  xlim(c(0,1))</code></pre>
+<p><img src="{{< blogdown/postref >}}index.en_files/figure-html/compare2-1.png" width="672" /></p>
 <p>In conclusion, fitting a hierarchical model in Stan for a noisy x variable measured in replicates can produce much more accurate inferences. How these results extend to more complex situations involving missing data and other complexities, remains to be seen.</p>
 </div>
