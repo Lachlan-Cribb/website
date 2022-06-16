@@ -270,7 +270,7 @@ bind_rows(
          rho = str_c(&quot;rho==&quot;, rho),
          threshold = str_c(&quot;threshold =&quot;, threshold)) %&gt;% 
   
-  mutate(covered = if_else(conf.low &lt; -5 &amp; conf.high &gt; -5, 1, 0)) %&gt;% 
+  mutate(covered = if_else(conf.low &lt; -6 &amp; conf.high &gt; -6, 1, 0)) %&gt;% 
   group_by(type, rho, threshold, covered) %&gt;%
   tally() %&gt;% 
   mutate(coverage = n/sum(n) * 100) %&gt;% 
@@ -281,7 +281,6 @@ bind_rows(
   theme(axis.text.x = element_text(angle = 90)) +
   ylim(c(85,100)) +
   labs(y = &quot;Coverage %&quot;, x = &quot;&quot;)</code></pre>
-<pre><code>## Warning: Removed 16 rows containing missing values (geom_point).</code></pre>
 <p><img src="{{< blogdown/postref >}}index.en_files/figure-html/unnamed-chunk-10-1.png" width="672" /></p>
 <p>Under most conditions, each of the methods produces intervals with nominal coverage. Notably, however, the ANCOVA LMM method tends to produce confidence intervals which are somewhat too narrow. And this seems to be worse as the degree of baseline truncation increases.</p>
 <p>Why truncation appears to produce overly confident inferences from the ANCOVA LMM but not the typical LMM is, to me, a mystery. This is not the conclusion I was expecting to reach. Nonetheless, it does seem that, under these very specific conditions, typical OLS ANCOVA is a safe bet. It would be interesting to extend these simulations to include missing data, distributional oddities, measurement issues etc, and see how and when that conclusion might change.</p>
