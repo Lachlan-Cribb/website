@@ -1,0 +1,338 @@
+---
+title: Baseline truncation in pre-post RCTs
+author: Lachlan Cribb
+date: '2022-06-16'
+slug: baseline-truncation-in-pre-post-rcts
+categories: []
+tags:
+  - RCT
+  - longitudinal
+subtitle: ''
+summary: ''
+authors: []
+lastmod: '2022-06-16T00:34:30+10:00'
+featured: no
+image:
+  caption: ''
+  focal_point: ''
+  preview_only: no
+projects: []
+---
+### Intro
+
+This is a response to and extension of the excellent recent [blog post](https://solomonkurz.netlify.app/post/2022-06-13-just-use-multilevel-models-for-your-pre-post-rct-data/) by Solomon Kurz (hereafter SK) which contrasted a set of four models for pre-post RCT data. In short, the four models were:
+
+- classic change score model: Y2 - Y1 ~ treatment
+- classic ANCOVA model: Y2 ~ Y1 + treatment
+- linear mixed model (LMM): Y ~ treatment*time + (1 | ID)
+- LMM ANCOVA: Y ~ time + treatment:time + (1 | ID)
+
+The four models were compared in a simulation study for bias and efficiency. Here, I add a minor extension to the simulation study to see how things change when baseline has a truncated distribution, which is often the case in realistic RCT's due to strict exclusion criteria.
+
+My suspicion is that the classic ANCOVA model will emerge clearly as the best option in this context. The reason being that the LMM's must include the baseline score as part of the outcome vector, leading it to contain effectively two different distributions, complicating modelling. 
+
+Almost all of the code here is directly taken from SK's original post - I have adapted it only very slightly. Nonetheless, mistakes are almost certainly my own. 
+
+
+Packages are first loaded and plotting theme set:
+
+```{r, warning = F, message = F}
+# load
+library(faux)
+library(lme4)
+library(ggplot2)
+library(tibble)
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(purrr)
+library(ggdist)
+library(marginaleffects)
+
+# adjust the plotting theme
+theme_set(
+  theme_linedraw() +
+    theme(panel.grid = element_blank(),
+          strip.background = element_rect(fill = "grey92", color = "grey92"),
+          strip.text = element_text(color = "black", size = 10)))
+
+```
+
+
+### Simulate fake BDI-II data 
+
+The BDI-II (Beck Depression Inventory) is a widely used tool which is employed to measure the severity of depression symptoms. In depression RCT's, usually a person has to meet a minimum level of severity to be eligible for inclusion. For instance, a BDI score > 18, indicating moderate-severe depression, is often used as a cut-off. Note that these cut-offs are not limited to psychiatry - for e.g., patients may need to have sufficiently high blood pressure to be eligible for testing a novel antihypertensive. 
+
+We presume that the population expressing interest in the RCT has a mean BDI score of 20 and standard deviation of 6. For this first example, we will apply a threshold of 18 for inclusion. This means that a bit under half of those individuals in the application pool will be below the threshold for participating. 
+
+```{r}
+
+sim_data <- function(seed = seed, n = n, tau = tau, rho = rho,
+                     threshold = threshold) {
+  
+  # population values
+  m <- 20
+  s <- 6
+  
+  # simulate and save
+  set.seed(seed)
+  
+  d <- rnorm_multi(
+    n = n,
+    mu = c(m, m),
+    sd = c(s, s), 
+    r = rho, 
+    varnames = list("pre", "post")
+  ) %>% 
+    mutate(tx = rep(0:1, each = n / 2)) %>% 
+    mutate(post = ifelse(tx == 1, post + tau, post))
+  
+  # apply exclusion criteria 
+  
+  d %>% filter(pre > threshold)
+
+}
+```
+
+An example dataset is created. We set the treatment effect to a reduction of BDI score of 6 points (equivalent to Cohen's d of -1).
+
+```{r}
+
+# generate data
+dw <- sim_data(seed = 1, n = 200, tau = -6, rho = .5,
+               threshold = 18)
+
+
+# long format
+dl <- dw %>% 
+  mutate(id = 1:n()) %>% 
+  pivot_longer(pre:post,
+               names_to = "wave",
+               values_to = "y") %>% 
+  mutate(time = ifelse(wave == "pre", 0, 1))
+
+```
+
+Plot of histogram displaying baseline truncation 
+
+```{r}
+
+# histograms
+
+dl %>% 
+  ggplot(aes(y = y)) +
+  geom_histogram(color = "#000000", fill = "#0099F8") +
+  facet_wrap(~ time) +
+  coord_flip()
+
+```
+
+The next plot shows change in symptoms over time. Participants in the control group tend (slightly) toward symptom improvement - despite receiving no treatment. This is typical of depression RCTs. Only individuals who were quite unwell _at the time of recruitment_ could paricipate, after which they may tend to drop down toward normal levels (i.e., regression to the mean). Of course, other factors, such as placebo effects, cause control participants to improve across the trial, but regression to the mean is the only factor at play in this simulation.  
+```{r}
+
+# example trends
+
+dl %>% 
+  ggplot(aes(x = time, y = y)) +
+  geom_line(aes(group = id),
+            size = 1/4, alpha = 3/4) +
+  stat_smooth(method = "lm", se = F, size = 3, formula = y ~ x) +
+  scale_x_continuous(breaks = 0:1, labels = c("0 (pre)", "1 (post)"), expand = c(0.1, 0.1)) +
+  scale_y_continuous(sec.axis = dup_axis(name = NULL)) +
+  ggtitle(expression("100 draws from the population for which "*tau==-6)) +
+  facet_wrap(~ tx, labeller = label_both)
+```
+
+
+### Simulation study 
+
+We now replicate SK's simulation study. As in the original, we use two values for the pre-post correlation, though we use 0.7 in place of 0.8. Secondly, we apply two minimum severity thresholds, designed to cover a range of realistic scenarios. In the first, interested prospective participants must have a BDI score > 16. This excludes about 1/4 of the applicants from being randomised. In the second, a BDI score > 20 is required, excluding half of the pool of prospective participants.
+
+The sample sizes of study applicants is inflated to keep the final, randomised sample to approximately 100 participants. 
+
+```{r}
+
+sim_fit <- function(seed = seed, n = n, tau = -6, rho = rho,
+                    threshold = threshold) {
+  
+  # population values
+  m <- 20
+  s <- 6
+  
+  # simulate wide
+  set.seed(seed)
+  
+  dw <- 
+    rnorm_multi(
+      n = n,
+      mu = c(m, m),
+      sd = c(s, s), 
+      r = rho, 
+      varnames = list("pre", "post")
+    ) %>% 
+    mutate(tx = rep(0:1, each = n / 2)) %>% 
+    mutate(post = ifelse(tx == 1, post + tau, post))
+  
+  # apply exclusion criteria 
+  
+  dw <- 
+    dw %>% filter(pre > threshold)
+  
+  # make long
+  dl <- dw %>% 
+    mutate(id = 1:n()) %>% 
+    pivot_longer(pre:post,
+                 names_to = "wave",
+                 values_to = "y") %>% 
+    mutate(time = ifelse(wave == "pre", 0, 1))
+  
+  # fit the models
+  w1 <- glm(
+    data = dw,
+    family = gaussian,
+    (post - pre) ~ 1 + tx)
+  
+  w2 <- glm(
+    data = dw,
+    family = gaussian,
+    post ~ 1 + pre + tx)
+  
+  l1 <- lmer(
+    data = dl,
+    y ~ 1 + tx + time + tx:time + (1 | id))
+  
+  l2 <- lmer(
+    data = dl,
+    y ~ 1 + time + tx:time + (1 | id))
+  
+  # summarize
+  bind_rows(
+    broom::tidy(w1,conf.int=T)[2, c(2:4,6:7)],
+    broom::tidy(w2,conf.int=T)[3, c(2:4,6:7)],
+    broom.mixed::tidy(l1, conf.int=T)[4, c(4:6,7:8)],
+    broom.mixed::tidy(l2, conf.int=T)[3, c(4:6,7:8)]) %>% 
+    mutate(method = rep(c("glm()", "lmer()"), each = 2),
+           model = rep(c("change", "ANCOVA"), times = 2))
+  
+}
+
+```
+
+Now, 2000 unique datasets are simulated for each combination of correlation (rho) and threshold. The treatment effect parameter is extracted from each.
+
+```{r, warning = F, message = F}
+
+# rho = 0.4
+sim.4.16 <- tibble(seed = 1:2000) %>% 
+  mutate(tidy = map(seed, sim_fit, rho = .4, 
+                    threshold = 16, n = 160)) %>% 
+  unnest(tidy)
+
+    sim.4.20 <- tibble(seed = 1:2000) %>% 
+  mutate(tidy = map(seed, sim_fit, rho = .4, 
+                    threshold = 20, n = 300)) %>% 
+  unnest(tidy)
+
+# rho = .7
+sim.8.16 <- tibble(seed = 1:2000) %>% 
+  mutate(tidy = map(seed, sim_fit, rho = .7,
+                    threshold = 16, n = 160)) %>% 
+  unnest(tidy)
+
+sim.8.20 <- tibble(seed = 1:2000) %>% 
+  mutate(tidy = map(seed, sim_fit, rho = .7,
+                    threshold = 20, n = 300)) %>% 
+  unnest(tidy)
+```
+
+### Results
+
+The bias in the estimation of the treatment effect is displayed for each of the combinations of method, correlation, and inclusion threshold. 
+```{r}
+
+bind_rows(
+  sim.4.16 %>% mutate(rho = .4, threshold = 16), 
+  sim.4.20 %>% mutate(rho = .4, threshold = 20), 
+  sim.8.16 %>% mutate(rho = .8, threshold = 16),
+  sim.8.20 %>% mutate(rho = .8, threshold = 20)) %>% 
+  mutate(type = str_c(model, ", ", method),
+         rho = str_c("rho==", rho),
+         threshold = str_c("threshold ==", threshold)) %>%
+  
+  ggplot(aes(x = estimate, y = type, slab_color = stat(x), slab_fill = stat(x))) +
+  geom_vline(xintercept = 1, color = "grey67") +
+  stat_dotsinterval(.width = .5, slab_shape = 22) +
+  labs(title = "Parameter bias by model, pre/post correlation, and threshold",
+       x = expression(hat(tau)*" (causal effect point estimate)"),
+       y = NULL) +
+  scale_slab_fill_continuous(limits = c(0, NA)) +
+  scale_slab_color_continuous(limits = c(0, NA)) +
+  coord_cartesian(ylim = c(1.4, NA)) +
+  theme(axis.text.y = element_text(hjust = 0),
+        legend.position = "none") +
+  facet_wrap(vars(rho, threshold), labeller = label_parsed)
+```
+
+All of the methods appear to be unbiased. 
+
+The efficiency (standard error of the treatment effect) is displayed for each of the combinations of method, correlation, and inclusion threshold. 
+```{r}
+
+### Efficiency 
+
+bind_rows(
+  sim.4.16 %>% mutate(rho = .4, threshold = 16), 
+  sim.4.20 %>% mutate(rho = .4, threshold = 20), 
+  sim.8.16 %>% mutate(rho = .8, threshold = 16),
+  sim.8.20 %>% mutate(rho = .8, threshold = 20)) %>% 
+  mutate(type = str_c(model, ", ", method),
+         rho = str_c("rho==", rho),
+         threshold = str_c("threshold ==", threshold)) %>% 
+  
+  ggplot(aes(x = std.error, y = type, slab_color = stat(x), slab_fill = stat(x))) +
+  stat_dotsinterval(.width = .5, slab_shape = 22) +
+  labs(title = "Parameter efficiency by model, pre/post correlation, and threshold",
+       x = expression(tau[s.e.]*" (causal effect standard error)"),
+       y = NULL) +
+  scale_slab_fill_continuous(limits = c(0, NA)) +
+  scale_slab_color_continuous(limits = c(0, NA)) +
+  coord_cartesian(ylim = c(1.4, NA)) +
+  theme(axis.text.y = element_text(hjust = 0),
+        legend.position = "none") +
+  facet_wrap(vars(rho, threshold), labeller = label_parsed)
+```
+
+There is a clear distinction here in the results between ours and those of SK's original simulation. That is, the LMM ANCOVA method stands out as being the most efficient, particularly when baseline truncation is strong.
+
+
+Lastly, the percentage coverage of the 95% CI for each model type is compared:  
+
+```{r}
+
+bind_rows(
+  sim.4.16 %>% mutate(rho = .4, threshold = 16), 
+  sim.4.20 %>% mutate(rho = .4, threshold = 20), 
+  sim.8.16 %>% mutate(rho = .8, threshold = 16),
+  sim.8.20 %>% mutate(rho = .8, threshold = 20)) %>% 
+  mutate(type = str_c(model, ", ", method),
+         rho = str_c("rho==", rho),
+         threshold = str_c("threshold =", threshold)) %>% 
+  
+  mutate(covered = if_else(conf.low < -6 & conf.high > -6, 1, 0)) %>% 
+  group_by(type, rho, threshold, covered) %>%
+  tally() %>% 
+  mutate(coverage = n/sum(n) * 100) %>% 
+  filter(covered == 1) %>% 
+  ggplot(aes(x = type, y = coverage, colour = threshold)) +
+  geom_point(position = position_dodge(0.25)) +
+  facet_wrap(~rho, labeller = label_parsed) +
+  theme(axis.text.x = element_text(angle = 90)) +
+  ylim(c(85,100)) +
+  labs(y = "Coverage %", x = "")
+```
+
+
+Under most conditions, each of the methods produces intervals with nominal coverage. Notably, however, the ANCOVA LMM method tends to produce confidence intervals which are somewhat too narrow. And this seems to be worse as the degree of baseline truncation increases. 
+
+Why truncation appears to produce overly confident inferences from the ANCOVA LMM but not the typical LMM is, to me, a mystery. This is not the conclusion I was expecting to reach. Nonetheless, it does seem that, under these very specific conditions, typical OLS ANCOVA is a safe bet. It would be interesting to extend these simulations to include missing data, distributional oddities, measurement issues etc, and see how and when that conclusion might change. 
+
