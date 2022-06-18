@@ -17,8 +17,14 @@ image:
   focal_point: ''
   preview_only: no
 projects: []
+header-includes:
+
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async         src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 ---
 
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script id="MathJax-script" async         src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
 
 <div id="intro" class="section level3">
@@ -31,7 +37,7 @@ projects: []
 <li>LMM ANCOVA: Y ~ time + treatment:time + (1 | ID)</li>
 </ul>
 <p>The four models were compared in a simulation study for bias and efficiency. Here, I add a minor extension to the simulation study to see how things change when baseline has a truncated distribution, which is often the case in realistic RCT’s due to strict exclusion criteria.</p>
-<p>My suspicion is that the classic ANCOVA model will emerge clearly as the best option in this context. The reason being that the LMM’s must include the baseline score as part of the outcome vector, leading it to contain effectively two different distributions, complicating modelling.</p>
+<p>My suspicion is that the classic glm() ANCOVA model will emerge as the best option in this context. The reason being that the LMM’s must include the baseline score as part of the outcome vector, leading it to contain effectively two different distributions. This data generating process is a challenge for LMM’s to represent.</p>
 <p>Almost all of the code here is directly taken from SK’s original post - I have adapted it only very slightly. Nonetheless, mistakes are almost certainly my own.</p>
 <p>Packages are first loaded and plotting theme set:</p>
 <pre class="r"><code># load
@@ -42,9 +48,11 @@ library(tibble)
 library(dplyr)
 library(tidyr)
 library(stringr)
+library(furrr)
 library(purrr)
 library(ggdist)
 library(marginaleffects)
+library(glmmTMB)
 
 # adjust the plotting theme
 theme_set(
@@ -56,7 +64,7 @@ theme_set(
 <div id="simulate-fake-bdi-ii-data" class="section level3">
 <h3>Simulate fake BDI-II data</h3>
 <p>The BDI-II (Beck Depression Inventory) is a widely used tool which is employed to measure the severity of depression symptoms. In depression RCT’s, usually a person has to meet a minimum level of severity to be eligible for inclusion. For instance, a BDI score &gt; 18, indicating moderate-severe depression, is often used as a cut-off. Note that these cut-offs are not limited to psychiatry - for e.g., patients may need to have sufficiently high blood pressure to be eligible for testing a novel antihypertensive.</p>
-<p>We presume that the population expressing interest in the RCT has a mean BDI score of 20 and standard deviation of 6. For this first example, we will apply a threshold of 18 for inclusion. This means that a bit under half of those individuals in the application pool will be below the threshold for participating.</p>
+<p>We presume that the population expressing interest in the RCT has a mean BDI score of 20 and standard deviation of 6. For this first example, we will apply a threshold of 20 for inclusion. This means that on average half of those individuals in the application pool will be below the threshold for participating.</p>
 <pre class="r"><code>sim_data &lt;- function(seed = seed, n = n, tau = tau, rho = rho,
                      threshold = threshold) {
   
@@ -84,8 +92,8 @@ theme_set(
 }</code></pre>
 <p>An example dataset is created. We set the treatment effect to a reduction of BDI score of 6 points (equivalent to Cohen’s d of -1).</p>
 <pre class="r"><code># generate data
-dw &lt;- sim_data(seed = 1, n = 200, tau = -6, rho = .5,
-               threshold = 18)
+dw &lt;- sim_data(seed = 1, n = 300, tau = -6, rho = .5,
+               threshold = 20)
 
 
 # long format
@@ -98,10 +106,12 @@ dl &lt;- dw %&gt;%
 <p>Plot of histogram displaying baseline truncation</p>
 <pre class="r"><code># histograms
 
+dl$wave &lt;- factor(dl$wave, c(&quot;pre&quot;, &quot;post&quot;))
+
 dl %&gt;% 
   ggplot(aes(y = y)) +
   geom_histogram(color = &quot;#000000&quot;, fill = &quot;#0099F8&quot;) +
-  facet_wrap(~ time) +
+  facet_wrap(~ wave) +
   coord_flip()</code></pre>
 <pre><code>## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
 <p><img src="{{< blogdown/postref >}}index.en_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
@@ -121,7 +131,7 @@ dl %&gt;%
 </div>
 <div id="simulation-study" class="section level3">
 <h3>Simulation study</h3>
-<p>We now replicate SK’s simulation study. As in the original, we use two values for the pre-post correlation, though we use 0.7 in place of 0.8. Secondly, we apply two minimum severity thresholds, designed to cover a range of realistic scenarios. In the first, interested prospective participants must have a BDI score &gt; 16. This excludes about 1/4 of the applicants from being randomised. In the second, a BDI score &gt; 20 is required, excluding half of the pool of prospective participants.</p>
+<p>We now replicate SK’s simulation study. As in the original, we use two values for the pre-post correlation, though we use 0.7 in place of 0.8. Secondly, we apply two minimum severity thresholds, designed to cover a range of realistic scenarios. In the first, interested prospective participants must have a BDI score &gt; 16. This excludes about 1/4 of the applicants from being randomised. In the second, a BDI score &gt; 20 is required, excluding half of the pool of potential participants.</p>
 <p>The sample sizes of study applicants is inflated to keep the final, randomised sample to approximately 100 participants.</p>
 <pre class="r"><code>sim_fit &lt;- function(seed = seed, n = n, tau = -6, rho = rho,
                     threshold = threshold) {
@@ -186,26 +196,35 @@ dl %&gt;%
            model = rep(c(&quot;change&quot;, &quot;ANCOVA&quot;), times = 2))
   
 }</code></pre>
-<p>Now, 2000 unique datasets are simulated for each combination of correlation (rho) and threshold. The treatment effect parameter is extracted from each.</p>
-<pre class="r"><code># rho = 0.4
+<p>Now, 2000 unique datasets are simulated for each combination of correlation (rho) and threshold. The treatment effect parameter is extracted from each. The simulations are run in parallel over 4 threads using the <em>furrr</em> package.</p>
+<pre class="r"><code>plan(multisession, workers = 4)
+
+# rho = 0.4
 sim.4.16 &lt;- tibble(seed = 1:2000) %&gt;% 
-  mutate(tidy = map(seed, sim_fit, rho = .4, 
+  mutate(tidy = future_map(seed, sim_fit, rho = .4, 
                     threshold = 16, n = 160)) %&gt;% 
   unnest(tidy)
 
-    sim.4.20 &lt;- tibble(seed = 1:2000) %&gt;% 
-  mutate(tidy = map(seed, sim_fit, rho = .4, 
+plan(multisession, workers = 4)
+
+sim.4.20 &lt;- tibble(seed = 1:2000) %&gt;% 
+  mutate(tidy = future_map(seed, sim_fit, rho = .4, 
                     threshold = 20, n = 300)) %&gt;% 
   unnest(tidy)
 
 # rho = .7
+
+plan(multisession, workers = 4)
+
 sim.7.16 &lt;- tibble(seed = 1:2000) %&gt;% 
-  mutate(tidy = map(seed, sim_fit, rho = .7,
+  mutate(tidy = future_map(seed, sim_fit, rho = .7,
                     threshold = 16, n = 160)) %&gt;% 
   unnest(tidy)
 
+plan(multisession, workers = 4)
+
 sim.7.20 &lt;- tibble(seed = 1:2000) %&gt;% 
-  mutate(tidy = map(seed, sim_fit, rho = .7,
+  mutate(tidy = future_map(seed, sim_fit, rho = .7,
                     threshold = 20, n = 300)) %&gt;% 
   unnest(tidy)</code></pre>
 </div>
@@ -222,7 +241,7 @@ sim.7.20 &lt;- tibble(seed = 1:2000) %&gt;%
          threshold = str_c(&quot;threshold ==&quot;, threshold)) %&gt;%
   
   ggplot(aes(x = estimate, y = type, slab_color = stat(x), slab_fill = stat(x))) +
-  geom_vline(xintercept = 1, color = &quot;grey67&quot;) +
+  geom_vline(xintercept = -6, color = &quot;grey67&quot;) +
   stat_dotsinterval(.width = .5, slab_shape = 22) +
   labs(title = &quot;Parameter bias by model, pre/post correlation, and threshold&quot;,
        x = expression(hat(tau)*&quot; (causal effect point estimate)&quot;),
@@ -285,5 +304,283 @@ bind_rows(
   labs(y = &quot;Coverage %&quot;, x = &quot;&quot;)</code></pre>
 <p><img src="{{< blogdown/postref >}}index.en_files/figure-html/unnamed-chunk-10-1.png" width="672" /></p>
 <p>Under most conditions, each of the methods produces intervals with nominal coverage. Notably, however, the ANCOVA LMM method tends to produce confidence intervals which are somewhat too narrow. And this seems to be worse in cases of low pre-post correlation and when the degree of baseline truncation is large.</p>
-<p>Why truncation appears to produce overly confident inferences from the ANCOVA LMM in particular is, to me, a mystery. Nonetheless, it does seem that, under these very specific conditions, typical OLS ANCOVA is a safe bet. It would be interesting to extend these simulations to include missing data, distributional oddities, measurement issues etc, and see how and when that conclusion might change.</p>
+<p>Why truncation appears to produce overly confident inferences from the ANCOVA LMM in particular is, to me, somewhat of a mystery. One possibility is that the error variance at baseline is considerably lower than at post test, and this heteroscedasticity is causing problems for the ANCOVA LMM in particular.</p>
+</div>
+<div id="distributional-model-with-glmmtmb" class="section level3">
+<h3>Distributional model with glmmTMB</h3>
+<p>To investigate this possibility, using the example dataset created above, we fit a distributional model in which the error variance is allowed to vary by time in the LMM ANCOVA.</p>
+<p>The model, in statistical notation is,</p>
+<p><span class="math display">\[
+\begin{align*}
+y_{it} &amp; \sim \mathcal N(\mu_{it}, \sigma_{e_{it}}) \\
+\mu     _{it} &amp; = \beta_0 + \beta_1 \text{time}_{it} + {\color{red}{\beta_2}} \text{tx}_{it}\text{time}_{it} + u_{0i} \\
+u_{0i} &amp; \sim \mathcal N(0, \sigma_0) \\
+log(\sigma_{e_{it}}) &amp; \sim \delta_0 + \delta_1time_{it}
+\end{align*}
+\]</span></p>
+<p>The model is fit using R package <em>glmmTMB</em>:</p>
+<pre class="r"><code>dm1 &lt;- 
+  glmmTMB(
+    data = dl,
+    y ~ 1 + time + tx:time + (1 | id),
+    dispformula = ~ time, REML = T)
+
+summary(dm1)</code></pre>
+<pre><code>##  Family: gaussian  ( identity )
+## Formula:          y ~ 1 + time + tx:time + (1 | id)
+## Dispersion:         ~time
+## Data: dl
+## 
+##      AIC      BIC   logLik deviance df.resid 
+##   1728.4   1750.6   -858.2   1716.4      293 
+## 
+## Random effects:
+## 
+## Conditional model:
+##  Groups   Name        Variance Std.Dev.
+##  id       (Intercept) 6.632    2.575   
+##  Residual                NA       NA   
+## Number of obs: 296, groups:  id, 148
+## 
+## Conditional model:
+##             Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept)  24.8620     0.3117   79.76  &lt; 2e-16 ***
+## time         -3.0291     0.6276   -4.83 1.39e-06 ***
+## time:tx      -5.2394     0.8498   -6.17 7.02e-10 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Dispersion model:
+##             Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept)   2.0473     0.2391   8.564  &lt; 2e-16 ***
+## time          1.0930     0.2788   3.921 8.82e-05 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
+<p>There is strong evidence that the residual variance, sigma, varies between baseline and follow-up - the model estimate <span class="math inline">\(\delta_1\)</span> (modelled on the log scale) indicates that residual variation at follow-up is exp(1.09) = 3-fold higher at follow-up than baseline.</p>
+<p>Comparing the classic LMM with the distributional model by AIC:</p>
+<pre class="r"><code>l1 &lt;- lmer(
+    data = dl,
+    y ~ 1 + time + tx:time + (1 | id))
+
+AIC(l1, dm1)</code></pre>
+<pre><code>##     df      AIC
+## l1   5 1747.420
+## dm1  6 1728.437</code></pre>
+<p>There is unambiguous evidence that the distributional model produces better fit to data (lower AIC) in this context.</p>
+<p>What about with more modest truncation (threshold of 16)?</p>
+<pre class="r"><code># generate data
+dw &lt;- sim_data(seed = 1, n = 160, tau = -6, rho = .5,
+               threshold = 16)
+
+
+# long format
+dl &lt;- dw %&gt;% 
+  mutate(id = 1:n()) %&gt;% 
+  pivot_longer(pre:post,
+               names_to = &quot;wave&quot;,
+               values_to = &quot;y&quot;) %&gt;% 
+  mutate(time = ifelse(wave == &quot;pre&quot;, 0, 1))
+
+l1 &lt;- lmer(
+    data = dl,
+    y ~ 1 + time + tx:time + (1 | id))
+
+dm1 &lt;- 
+  glmmTMB(
+    data = dl,
+    y ~ 1 + time + tx:time + (1 | id),
+    dispformula = ~ time, REML = T)
+
+
+AIC(l1, dm1)</code></pre>
+<pre><code>##     df      AIC
+## l1   5 1478.294
+## dm1  6 1470.092</code></pre>
+<p>Again, the distributional model is clearly producing better fit.</p>
+<p>To contrast this distributional model with the previously described methods, we extend the simulation study described above to include the models fit via glmmTMB.</p>
+<pre class="r"><code>sim_fit &lt;- function(seed = seed, n = n, tau = -6, rho = rho,
+                    threshold = threshold) {
+  
+  # population values
+  m &lt;- 20
+  s &lt;- 6
+  
+  # simulate wide
+  set.seed(seed)
+  
+  dw &lt;- 
+    rnorm_multi(
+      n = n,
+      mu = c(m, m),
+      sd = c(s, s), 
+      r = rho, 
+      varnames = list(&quot;pre&quot;, &quot;post&quot;)
+    ) %&gt;% 
+    mutate(tx = rep(0:1, each = n / 2)) %&gt;% 
+    mutate(post = ifelse(tx == 1, post + tau, post))
+  
+  # apply exclusion criteria 
+  
+  dw &lt;- 
+    dw %&gt;% filter(pre &gt; threshold)
+  
+  # make long
+  dl &lt;- dw %&gt;% 
+    mutate(id = 1:n()) %&gt;% 
+    pivot_longer(pre:post,
+                 names_to = &quot;wave&quot;,
+                 values_to = &quot;y&quot;) %&gt;% 
+    mutate(time = ifelse(wave == &quot;pre&quot;, 0, 1))
+  
+  # fit the models
+  dm1 &lt;- glmmTMB(
+    data = dl,
+    y ~ 1 + tx + time + tx:time + (1 | id),
+    dispformula = ~ time, REML = T)
+  
+  dm2 &lt;- glmmTMB(
+    data = dl,
+    y ~ 1 + time + tx:time + (1 | id),
+    dispformula = ~ time, REML = T)
+  
+  # summarize
+
+bind_rows(
+  broom.mixed::tidy(dm1, conf.int=T)[4,c(5:7,9:10)],
+  broom.mixed::tidy(dm2, conf.int=T)[3,c(5:7,9:10)]) %&gt;% 
+  mutate(method = rep(&quot;glmmTMB&quot;, each = 2),
+         model = c(&quot;change&quot;, &quot;ANCOVA&quot;))
+  
+}</code></pre>
+<p>Fit the distributional model to 2000 simulated datasets:</p>
+<pre class="r"><code>plan(multisession, workers = 4)
+
+# rho = 0.4
+sim.4.16.d &lt;- tibble(seed = 1:2000) %&gt;% 
+  mutate(tidy = future_map(seed, sim_fit, rho = .4, 
+                    threshold = 16, n = 160)) %&gt;% 
+  unnest(tidy)
+
+plan(multisession, workers = 4)
+
+sim.4.20.d &lt;- tibble(seed = 1:2000) %&gt;% 
+  mutate(tidy = future_map(seed, sim_fit, rho = .4, 
+                    threshold = 20, n = 300)) %&gt;% 
+  unnest(tidy)
+
+# rho = .7
+
+plan(multisession, workers = 4)
+
+sim.7.16.d &lt;- tibble(seed = 1:2000) %&gt;% 
+  mutate(tidy = future_map(seed, sim_fit, rho = .7,
+                    threshold = 16, n = 160)) %&gt;% 
+  unnest(tidy)
+
+plan(multisession, workers = 4)
+
+sim.7.20.d &lt;- tibble(seed = 1:2000) %&gt;% 
+  mutate(tidy = future_map(seed, sim_fit, rho = .7,
+                    threshold = 20, n = 300)) %&gt;% 
+  unnest(tidy)</code></pre>
+</div>
+<div id="results-part-2" class="section level3">
+<h3>Results part 2</h3>
+<p>The bias in the estimation of the treatment effect is displayed for each of the combinations of method, correlation, and inclusion threshold.</p>
+<pre class="r"><code>bind_rows(
+  sim.4.16 %&gt;% mutate(rho = .4, threshold = 16), 
+  sim.4.20 %&gt;% mutate(rho = .4, threshold = 20), 
+  sim.7.16 %&gt;% mutate(rho = .7, threshold = 16),
+  sim.7.20 %&gt;% mutate(rho = .7, threshold = 20),
+  sim.4.16.d %&gt;% mutate(rho = .4, threshold = 16), 
+  sim.4.20.d %&gt;% mutate(rho = .4, threshold = 20), 
+  sim.7.16.d %&gt;% mutate(rho = .7, threshold = 16),
+  sim.7.20.d %&gt;% mutate(rho = .7, threshold = 20)) %&gt;% 
+  mutate(type = str_c(model, &quot;, &quot;, method),
+         rho = str_c(&quot;rho==&quot;, rho),
+         threshold = str_c(&quot;threshold ==&quot;, threshold)) %&gt;%
+  
+  ggplot(aes(x = estimate, y = type, slab_color = stat(x), slab_fill = stat(x))) +
+  geom_vline(xintercept = -6, color = &quot;grey67&quot;) +
+  stat_dotsinterval(.width = .5, slab_shape = 22) +
+  labs(title = &quot;Parameter bias by model, pre/post correlation, and threshold&quot;,
+       x = expression(hat(tau)*&quot; (causal effect point estimate)&quot;),
+       y = NULL) +
+  scale_slab_fill_continuous(limits = c(0, NA)) +
+  scale_slab_color_continuous(limits = c(0, NA)) +
+  coord_cartesian(ylim = c(1.4, NA)) +
+  theme(axis.text.y = element_text(hjust = 0),
+        legend.position = &quot;none&quot;) +
+  facet_wrap(vars(rho, threshold), labeller = label_parsed)</code></pre>
+<p><img src="{{< blogdown/postref >}}index.en_files/figure-html/unnamed-chunk-13-1.png" width="672" />
+Again, there is no evidence of bias associated with any of the methods.</p>
+<p>The efficiency (standard error of the treatment effect) is again displayed for each of the methods.</p>
+<pre class="r"><code>### Efficiency 
+
+bind_rows(
+  sim.4.16 %&gt;% mutate(rho = .4, threshold = 16), 
+  sim.4.20 %&gt;% mutate(rho = .4, threshold = 20), 
+  sim.7.16 %&gt;% mutate(rho = .7, threshold = 16),
+  sim.7.20 %&gt;% mutate(rho = .7, threshold = 20),
+  sim.4.16.d %&gt;% mutate(rho = .4, threshold = 16), 
+  sim.4.20.d %&gt;% mutate(rho = .4, threshold = 20), 
+  sim.7.16.d %&gt;% mutate(rho = .7, threshold = 16),
+  sim.7.20.d %&gt;% mutate(rho = .7, threshold = 20)) %&gt;% 
+  mutate(type = str_c(model, &quot;, &quot;, method),
+         rho = str_c(&quot;rho==&quot;, rho),
+         threshold = str_c(&quot;threshold ==&quot;, threshold)) %&gt;% 
+  
+  ggplot(aes(x = std.error, y = type, slab_color = stat(x), slab_fill = stat(x))) +
+  stat_dotsinterval(.width = .5, slab_shape = 22) +
+  labs(title = &quot;Parameter efficiency by model, pre/post correlation, and threshold&quot;,
+       x = expression(tau[s.e.]*&quot; (causal effect standard error)&quot;),
+       y = NULL) +
+  scale_slab_fill_continuous(limits = c(0, NA)) +
+  scale_slab_color_continuous(limits = c(0, NA)) +
+  coord_cartesian(ylim = c(1.4, NA)) +
+  theme(axis.text.y = element_text(hjust = 0),
+        legend.position = &quot;none&quot;) +
+  facet_wrap(vars(rho, threshold), labeller = label_parsed)</code></pre>
+<p><img src="{{< blogdown/postref >}}index.en_files/figure-html/unnamed-chunk-14-1.png" width="672" />
+It seems that the classic change LMM, the distributional change LMM, and the glm change model are all equivalent in terms of efficiency.They are clearly outperformed by their ANCOVA counterparts in all cases.</p>
+<p>But here is the interesting result. When extending the LMM ANCOVA to include a model for sigma (residual variance), the efficiency is equivalent to that of the ANCOVA glm.</p>
+<p>Here we compare coverage of the 95% intervals for each method:</p>
+<pre class="r"><code>bind_rows(
+  sim.4.16 %&gt;% mutate(rho = .4, threshold = 16), 
+  sim.4.20 %&gt;% mutate(rho = .4, threshold = 20), 
+  sim.7.16 %&gt;% mutate(rho = .7, threshold = 16),
+  sim.7.20 %&gt;% mutate(rho = .7, threshold = 20),
+  sim.4.16.d %&gt;% mutate(rho = .4, threshold = 16), 
+  sim.4.20.d %&gt;% mutate(rho = .4, threshold = 20), 
+  sim.7.16.d %&gt;% mutate(rho = .7, threshold = 16),
+  sim.7.20.d %&gt;% mutate(rho = .7, threshold = 20)) %&gt;% 
+  mutate(type = str_c(model, &quot;, &quot;, method),
+         rho = str_c(&quot;rho==&quot;, rho),
+         threshold = str_c(&quot;threshold =&quot;, threshold)) %&gt;% 
+  
+  mutate(covered = if_else(conf.low &lt; -6 &amp; conf.high &gt; -6, 1, 0)) %&gt;% 
+  group_by(type, rho, threshold, covered) %&gt;%
+  tally() %&gt;% 
+  mutate(coverage = n/sum(n) * 100) %&gt;% 
+  filter(covered == 1) %&gt;% 
+  ggplot(aes(x = type, y = coverage, colour = threshold)) +
+  geom_hline(aes(yintercept = 94), colour = &quot;grey&quot;) +
+  geom_hline(aes(yintercept = 96), colour = &quot;grey&quot;) +
+  geom_point(position = position_dodge(0.25)) +
+  facet_wrap(~rho, labeller = label_parsed) +
+  theme(axis.text.x = element_text(angle = 90)) +
+  ylim(c(85,100)) +
+  labs(y = &quot;Coverage %&quot;, x = &quot;&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index.en_files/figure-html/unnamed-chunk-15-1.png" width="672" />
+Again, all methods, excluding the ANCOVA lmm, produce nominal coverage. But it seems that by adding a model for sigma to the ANCOVA lmm, thereby accounting for the unequal variance between time-points, has solved its undercoverage problem.</p>
+</div>
+<div id="conclusion" class="section level3">
+<h3>Conclusion</h3>
+<p>Under these specific conditions, a couple of clear themes emerge:</p>
+<ul>
+<li><p>The typical glm ANCOVA is a safe bet - producing good efficiency and nominal coverage in all situations considered.</p></li>
+<li><p>The LMM ANCOVA model is anticonservative in the context of baseline truncation, and this seems to be worse with higher baseline truncation and lower pre-post correlation.</p></li>
+<li><p>The anticonservatism of the ANCOVA lmm, when baseline has a truncated distribution, can be rescued by allowing the residual variance to vary by time, as in a glmmTMB distributional model. This produces equivalent efficiency to the glm ANCOVA. Which, given the perks of the multilevel approach described in SK’s original post (i.e., plotting, confidence intervals, missing data), could nudge it up to being the best of the approaches considered.</p></li>
+</ul>
+<p>It would be interesting to extend these simulations to include missing data, other likelihood functions (depression sum scales such as the BDI-II clearly do not have a Gaussian distribution, though they are typically treated as such), and see how and when these conclusions might change.</p>
 </div>

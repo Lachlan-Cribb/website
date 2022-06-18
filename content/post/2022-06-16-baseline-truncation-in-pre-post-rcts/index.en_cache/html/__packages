@@ -1,0 +1,14 @@
+faux
+Matrix
+lme4
+ggplot2
+tibble
+dplyr
+tidyr
+stringr
+purrr
+ggdist
+marginaleffects
+glmmTMB
+future
+furrr
