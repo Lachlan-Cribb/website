@@ -366,7 +366,7 @@ $$
 y_{it} & \sim \mathcal N(\mu_{it}, \sigma_{e_{it}}) \\
 \mu     _{it} & = \beta_0 + \beta_1 \text{time}_{it} + {\color{red}{\beta_2}} \text{tx}_{it}\text{time}_{it} + u_{0i} \\
 u_{0i} & \sim \mathcal N(0, \sigma_0) \\
-log(\sigma_{e_{it}}) & \sim \delta_0 + \delta_1time_{it}
+\log(\sigma_{e_{it}}) & \sim \delta_0 + \delta_1\text{time}_{it}
 \end{align*}
 $$
 

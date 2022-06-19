@@ -315,7 +315,7 @@ bind_rows(
 y_{it} &amp; \sim \mathcal N(\mu_{it}, \sigma_{e_{it}}) \\
 \mu     _{it} &amp; = \beta_0 + \beta_1 \text{time}_{it} + {\color{red}{\beta_2}} \text{tx}_{it}\text{time}_{it} + u_{0i} \\
 u_{0i} &amp; \sim \mathcal N(0, \sigma_0) \\
-log(\sigma_{e_{it}}) &amp; \sim \delta_0 + \delta_1time_{it}
+\log(\sigma_{e_{it}}) &amp; \sim \delta_0 + \delta_1\text{time}_{it}
 \end{align*}
 \]</span></p>
 <p>The model is fit using R package <em>glmmTMB</em>:</p>
