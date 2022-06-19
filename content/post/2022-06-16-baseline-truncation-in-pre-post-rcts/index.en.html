@@ -196,7 +196,7 @@ dl %&gt;%
            model = rep(c(&quot;change&quot;, &quot;ANCOVA&quot;), times = 2))
   
 }</code></pre>
-<p>Now, 2000 unique datasets are simulated for each combination of correlation (rho) and threshold. The treatment effect parameter is extracted from each. The simulations are run in parallel over 4 threads using the <em>furrr</em> package.</p>
+<p>Now, 2000 unique datasets are simulated for each combination of correlation (rho) and threshold. The treatment effect parameter is extracted from each. The simulations are run in parallel over 4 threads using the <a href="https://www.tidyverse.org/blog/2020/10/furrr-0-2-0/"><em>furrr</em></a> package.</p>
 <pre class="r"><code>plan(multisession, workers = 4)
 
 # rho = 0.4

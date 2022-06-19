@@ -226,7 +226,7 @@ sim_fit <- function(seed = seed, n = n, tau = -6, rho = rho,
 
 ```
 
-Now, 2000 unique datasets are simulated for each combination of correlation (rho) and threshold. The treatment effect parameter is extracted from each. The simulations are run in parallel over 4 threads using the _furrr_ package. 
+Now, 2000 unique datasets are simulated for each combination of correlation (rho) and threshold. The treatment effect parameter is extracted from each. The simulations are run in parallel over 4 threads using the [_furrr_](https://www.tidyverse.org/blog/2020/10/furrr-0-2-0/) package. 
 
 ```{r, warning = F, message = F, cache=T}
 
