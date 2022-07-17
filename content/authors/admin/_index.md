@@ -42,7 +42,7 @@ social:
   #  link: '/#contact'
   - icon: twitter
     icon_pack: fab
-    link: https://twitter.com/lach45554
+    link: https://twitter.com/Lachlan_cribb
   - icon: graduation-cap # Alternatively, use `google-scholar` icon from `ai` icon pack
     icon_pack: fas
     link: https://scholar.google.com.au/citations?user=mQJxEU0AAAAJ&hl=en
@@ -67,6 +67,6 @@ social:
 #highlight_name: true
 ---
 
-I am an epidemiologist working in the fields of dementia and psychiatry research. My main interests are in design and analysis of RCTs and causal inference methods in observational studies. 
+I am an epidemiologist working in dementia and psychiatry research. My main interests are in design and analysis of RCTs and causal inference methods in observational studies. 
 
-I'm using this website to share detail of the various analytical/philosophical problems I encounter in the course of this research work, and hopefully some of the solutions too. 
+I’m using this website to share detail of the various analytical/philosophical problems I encounter in the course of this research work, and, hopefully, my best attempts at reaching some kind of solution or understanding. 
