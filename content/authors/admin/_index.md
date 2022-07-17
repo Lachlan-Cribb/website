@@ -67,4 +67,6 @@ social:
 #highlight_name: true
 ---
 
-I am an epidemiologist currently working in the epidemiology of dementia and psychiatric disorders. My main interests are in using causal inference methods in RCTs and observational studies to guide public health interventions for these conditions. 
+I am an epidemiologist working in the fields of dementia and psychiatry research. My main interests are in design and analysis of RCTs and causal inference methods in observational studies. 
+
+I'm using this website to share detail of the various analytical/philosophical problems I encounter in the course of this research work, and hopefully some of the solutions too. 
