@@ -6,7 +6,7 @@ title: Lachlan Cribb
 superuser: true
 
 # Role/position/tagline
-role: Epidemiologist
+role: PhD Student
 
 # Organizations/Affiliations to show in About widget
 organizations:
@@ -14,7 +14,7 @@ organizations:
     url: #https://www.stanford.edu/
 
 # Short bio (displayed in user profile at end of posts)
-bio: My research interests include causal inference methodology and treatment and preventative strategies for dementia and psychiatric disorders
+bio: My primary research interest is in causal inference methodology, particularly in the fields of dementia and psychiatry
 
 # Interests to show in About widget
 #interests:
@@ -42,7 +42,7 @@ social:
   #  link: '/#contact'
   - icon: twitter
     icon_pack: fab
-    link: https://twitter.com/Lachlan_cribb
+    link: https://twitter.com/Lach_cribb
   - icon: graduation-cap # Alternatively, use `google-scholar` icon from `ai` icon pack
     icon_pack: fas
     link: https://scholar.google.com.au/citations?user=mQJxEU0AAAAJ&hl=en
@@ -67,6 +67,6 @@ social:
 #highlight_name: true
 ---
 
-I am an epidemiologist working in dementia and psychiatry research. My main interests are in design and analysis of RCTs and causal inference methods in observational studies. 
+I am a PhD student working on causal inference methods with a particular applied focus in observational dementia research.
 
-I’m using this website to share detail of the various analytical/philosophical problems I encounter in the course of this research work, and, hopefully, my best attempts at reaching some kind of solution or understanding. 
+I will be using this website to share notes on causal inference concepts, stats and R programming, and whatever other issues I run into along the way. 
