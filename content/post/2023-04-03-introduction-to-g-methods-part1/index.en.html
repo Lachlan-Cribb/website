@@ -151,7 +151,7 @@ boot.ci(boot_out, conf = 0.95, type = &quot;norm&quot;)</code></pre>
 ## 
 ## Intervals : 
 ## Level      Normal        
-## 95%   ( 2.579,  4.485 )  
+## 95%   ( 2.615,  4.451 )  
 ## Calculations and Intervals on Original Scale</code></pre>
 <p>The bootstrap 95% confidence interval ranges from 2.6 to 4.5.</p>
 <p>There are other, less computationally costly, means of obtaining confidence intervals - the delta method and simulation.</p>
@@ -180,9 +180,9 @@ sim_est &lt;- sim_ame(sim_coefs, var = &quot;qsmk&quot;, contrast = &quot;diff&q
 
 summary(sim_est)</code></pre>
 <pre><code>##         Estimate 2.5 % 97.5 %
-## E[Y(0)]     1.76  1.32   2.19
-## E[Y(1)]     5.27  4.54   6.01
-## Diff        3.52  2.69   4.33</code></pre>
+## E[Y(0)]     1.76  1.34   2.17
+## E[Y(1)]     5.27  4.54   6.07
+## Diff        3.52  2.71   4.40</code></pre>
 <p>The confidence intervals produced by all three methods are similar.</p>
 <p>Beyond the core identification conditions described above, there is another essential assumption for the parametric g-formula to be unbiased. That is that the conditional mean outcome model is correctly specified. Even if you have meausured all important confounders you may not get an unbiased causal effect estimate from this method if you have misspecified the model (e.g., missed important interactions or non-linearities). The method described in the next section relies on a different modelling assumption - that is, that the model for <em>treatment</em> is correctly specified.</p>
 </div>
@@ -312,33 +312,10 @@ print(paste(&quot;E[Y(1)] - E[Y(0)] = &quot;,round(treat.effect,2)))</code></pre
 <p>All of the above approaches for the estimation of causal effects have made use of standard parametric models for estimation (that is, linear and logistic regression). Because these models tend to impose restrictions on the manner in which covariates are related to the outcome (e.g., no or few interactions, linearity of continuous variables), some amount of model mispecification is very likely in real settings. By contrast, highly flexible machine learning models impose few such restrictions and may be less prone to misspecification related bias.</p>
 <p>TMLE is a procedure for the doubly robust estimation of causal effects which makes use of machine learning tools. The basic mechanics, as outlined by <a href="https://onlinelibrary.wiley.com/doi/pdf/10.1002/sim.7628">Luque-Fernandez et al (2018)</a>, are similar to that of the Bang and Robins estimator, though a little more involved. The full procedure will be explored in more detail in a later post. For now, we’ll go straight to estimating the effect of smoking cessation using the R tmle package.</p>
 <p>Models for the conditional probability of treatment and the conditional mean on the outcome, given confounders <span class="math inline">\(L\)</span>, will be estimated using <a href="https://cran.r-project.org/web/packages/SuperLearner/vignettes/Guide-to-SuperLearner.html#background">SuperLearner</a>. SuperLearner is an algorithm which uses several machine learning tools, estimates their performance using cross-validation, and then creates an optimally weighted average of those models (an “ensemble”). Here, we’ll make use of generalised linear models, penalised maximum likelihood (glmnet), generalised additive models, and XGBoost in the SuperLearner algorithm.</p>
-<pre class="r"><code>library(SuperLearner)</code></pre>
-<pre><code>## Loading required package: nnls</code></pre>
-<pre><code>## Loading required package: gam</code></pre>
-<pre><code>## Loading required package: splines</code></pre>
-<pre><code>## Loading required package: foreach</code></pre>
-<pre><code>## 
-## Attaching package: &#39;foreach&#39;</code></pre>
-<pre><code>## The following objects are masked from &#39;package:purrr&#39;:
-## 
-##     accumulate, when</code></pre>
-<pre><code>## Loaded gam 1.22-2</code></pre>
-<pre><code>## Super Learner</code></pre>
-<pre><code>## Version: 2.0-28</code></pre>
-<pre><code>## Package created on 2021-05-04</code></pre>
-<pre class="r"><code>library(tmle)</code></pre>
-<pre><code>## Loading required package: glmnet</code></pre>
-<pre><code>## Loading required package: Matrix</code></pre>
-<pre><code>## 
-## Attaching package: &#39;Matrix&#39;</code></pre>
-<pre><code>## The following objects are masked from &#39;package:tidyr&#39;:
-## 
-##     expand, pack, unpack</code></pre>
-<pre><code>## Loaded glmnet 4.1-7</code></pre>
-<pre><code>## Welcome to the tmle package, version 1.5.0-1.1
-## 
-## Major changes since v1.3.x. Use tmleNews() to see details on changes and bug fixes</code></pre>
-<pre class="r"><code># data.frame of confounder variables
+<pre class="r"><code>suppressPackageStartupMessages(library(SuperLearner))
+suppressPackageStartupMessages(library(tmle))
+
+# data.frame of confounder variables
 
 confounds &lt;- select(nhefs, sex, race, age, education, smokeintensity, smokeyrs, exercise, active, wt71)
 
@@ -357,22 +334,22 @@ tmle.out &lt;- tmle(Y = nhefs$wt82_71,
 <pre><code>## Loading required namespace: xgboost</code></pre>
 <pre class="r"><code>tmle.out</code></pre>
 <pre><code>##  Additive Effect
-##    Parameter Estimate:  3.5157
-##    Estimated Variance:  0.19609
-##               p-value:  2.0355e-15
-##     95% Conf Interval: (2.6477, 4.3836) 
+##    Parameter Estimate:  3.5313
+##    Estimated Variance:  0.22241
+##               p-value:  7.0013e-14
+##     95% Conf Interval: (2.607, 4.4557) 
 ## 
 ##  Additive Effect among the Treated
-##    Parameter Estimate:  3.4514
-##    Estimated Variance:  0.21233
-##               p-value:  6.8838e-14
-##     95% Conf Interval: (2.5482, 4.3546) 
+##    Parameter Estimate:  3.4115
+##    Estimated Variance:  0.22367
+##               p-value:  5.4582e-13
+##     95% Conf Interval: (2.4845, 4.3384) 
 ## 
 ##  Additive Effect among the Controls
-##    Parameter Estimate:  3.5489
-##    Estimated Variance:  0.19644
-##               p-value:  1.1735e-15
-##     95% Conf Interval: (2.6802, 4.4177)</code></pre>
+##    Parameter Estimate:  3.5464
+##    Estimated Variance:  0.23248
+##               p-value:  1.9081e-13
+##     95% Conf Interval: (2.6013, 4.4914)</code></pre>
 <p>The estimate and confidence interval are very similar to those from previous methods. Which might indicate that our parameteric models were reasonably well-specified, though it remains uncertain whether other conditions (such as no unmeasured confounding) are satisfied.</p>
 </div>
 <div id="references" class="section level3">

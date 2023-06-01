@@ -354,8 +354,8 @@ Models for the conditional probability of treatment and the conditional mean on 
 
 ```{r tmle}
 
-library(SuperLearner)
-library(tmle)
+suppressPackageStartupMessages(library(SuperLearner))
+suppressPackageStartupMessages(library(tmle))
 
 # data.frame of confounder variables
 
