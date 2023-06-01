@@ -1,5 +1,5 @@
 ---
-title: "A simple alternative to averaging replicated exposure measurements"
+title: "An alternative to averaging replicated exposure measurements"
 author: "Lachlan Cribb"
 date: '2022-07-15'
 slug: An-alternative-to-averaging-replicated-exposure-measurements
@@ -17,23 +17,20 @@ image:
   focal_point: ''
   preview_only: no
 projects: []
-header-includes: <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-  <script id="MathJax-script" async         src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 ---
 
 <!-- ### Introduction -->
 
-Exposure variables are routinely measured in replicates in many medical research fields. In my field of epidemiology, for instance, blood biomarkers are often measured in duplicate. These variables are measured in replicates because their measurement is subject to considerable technical and/or biological variability and by performing repeated measurements we can hopefully get a better picture of the latent 'true' level of the exposure.
+Exposure variables are routinely measured in replicates in many medical research fields. In my field of epidemiology, for instance, blood biomarkers are often measured in duplicate. These variables are measured in replicates because their measurement is subject to technical and/or biological variability and by performing repeated measurements we can hopefully get a better picture of the latent 'true' level of the exposure.
 
 
-The problem is that it is not straightforward to include replicated exposure measurements as a predictor term in a regression model. So, when one wishes to use the exposure in a regression context, it is common for the replicated measurements to be averaged first. The resulting average is then used as a predictor in subsequent regression models. This averaging smooths away some noise and outliers - giving hopefully a more accurate picture of the latent level of the exposure variable. While simple and intuitive, there is at least one problem with this approach: there is no 'borrowing of information'. That is, the data from other individuals in the study is not used in any way to inform the latent exposure level of another. 
+The problem is that it is not straightforward to include replicated exposure measurements as a predictor term in a regression model. So, when one wishes to use the exposure in a regression context, it is common for the replicated measurements to be averaged first. The resulting average is then used as a predictor in subsequent regression models. This averaging smooths away some noise - giving hopefully a more accurate picture of the latent level of the biomarker. While simple and intuitive, it occurred to me that an issue with this approach is that these averages only make use of data from a given individual. The biomarker values of the rest of the sample do not contribute in any way to the estimation of that average. This is probably not the best way to estimate the 'true' value of the biomarker. Surely it could be improved by 'borrowing information' from other individuals in the study to inform the latent exposure level of each? 
 
 
-A potential improvement on this could be to use a hierarchical model to estimate each subjects latent exposure level. With this model, we would take advantage of partial pooling to adaptively 'shrink' each participants latent exposure level towards the overall sample average, particularly if their observations are quite extreme. 
+One way of doing so would be to use a hierarchical model to estimate each subjects latent exposure level. With this model, we would make use of the full distribution of sample biomarker values to inform the estimation of each individual's latent average. That is, we would take advantage of partial pooling to adaptively 'shrink' each participants latent exposure level towards the overall sample average, and shrink more aggressively if their observations were relatively extreme. 
 
-First, I briefly describe the two approaches and how they relate to eachother. 
+First, I briefly describe the two approaches (simple averaging and the hierarchical approach) and how they relate to eachother. 
 
-  
 
 #### Approach 1: simple averaging of replicates 
 
@@ -52,7 +49,7 @@ Where $\text{x}_{ij}$ is the exposure measurement for the $j^{th}$ replicate for
 
 #### Approach 2: hierachical model 
 
-In the second approach, an overall global mean (intercept) is estimated and participant-level deviations from that overall mean are represented by an error term (random intercept): 
+In the second approach, an overall global mean (intercept) is estimated and participant-level deviations from that overall mean are represented by an error term (i.e., a random intercept): 
 
 $$
 \begin{align*}
@@ -62,14 +59,13 @@ u_{0i} & \sim \mathcal N(0, \sigma_0) \\
 \end{align*}
 $$
 
-Alternatively, in lme4 syntax, the model is x ~ 1 + (1 | ID). 
-In this model, the estimated latent exposure level for each participant is a *compromise between the overall sample average $\beta_0$ and the no pooling estimate above*. How much each estimate is pulled closer to the overall mean (how much 'partial pooling') is determined by the standard deviation of the random intercept term $\sigma_0$. As an extreme case, when $\sigma_0$ = 0, the estimate for each participant is simply the sample average. As $\sigma_0$ approaches $\infty$, the no pooling estimate is returned (resulting in identical averages to those estimated from the first model described above). Partial pooling uses the data to identify the best compromise between those extremes. 
+In this model, the estimated latent exposure level for each participant is a *compromise between the overall sample average $\beta_0$ and the no pooling estimate above*. How much each estimate is pulled closer to the overall mean (how much 'partial pooling') is determined by the standard deviation of the random intercept term $\sigma_0$. As an extreme case, when $\sigma_0$ = 0, the estimate for each participant is simply the overall sample average. As $\sigma_0$ approaches $\infty$, the no pooling estimate is returned (resulting in identical estimates to those from the first model described above). The hierarchical model uses the data to estimate $\sigma_0$, attaining a compromise between those extremes. 
 
   
   
 ### Simulation 
 
-For this post, I will see how these two methods compare in a simulation study under a few different scenarios. In the simulation, the regression coefficient for the latent 'true' exposure and outcome relationship will be set to 0.50, and I will determine how well each of the two methods are able to reproduce that correct regression coefficient.
+For this post, I will see how these two methods compare in a simulation study under a few different scenarios. In the simulation, the effect of a unit increase in the latent 'true' exposure on the outcome will be set to 0.50. We will determine how well each of the two methods are able to reproduce that correct regression coefficient.
 
 First, to demonstrate the differences between the approaches, I will create a fake dataset (n = 100) to test them both. The intraclass correlation (ICC) of the replicated exposure measurements is set to 0.65. 
 
@@ -93,7 +89,7 @@ d <-
          ID = seq(1:100))
   
 # approach 1: average x
-d$average_x <- rowMeans(d[,3:4])
+d$x_average <- rowMeans(d[,3:4])
   
 # approach 2: hierarchical model
   
@@ -106,13 +102,13 @@ d$x_hmod <- predict(hmod, newdata = d)
   
 ```
 
-This plot demonstrates that the estimated exposure level from the hierarchical model (x_hmod) are shrunk towards the overall sample mean, relative to the no-pooling estimate (average_x). 
+This plot demonstrates that the estimated exposure level from the hierarchical model (x_hmod) are shrunk towards the overall sample mean, relative to the no-pooling estimate (x_average). 
 
 ```{r shrinkage_plot}
 
 d %>% 
   slice(1:25) %>% 
-  pivot_longer(c(average_x,x_hmod),
+  pivot_longer(c(x_average,x_hmod),
                values_to = "x", names_to = "method") %>% 
   ggplot(aes(x = x, y = ID, colour = method, group = ID)) +
   geom_point() +
@@ -120,7 +116,7 @@ d %>%
   geom_line() +
   theme_default()
 ```
-Note that t no pooling (average_x) estimates which are quite extreme are more aggressively pooled towards the overall mean than those which relatively more mean adjacent. The hierarchical model is using the data from the whole sample and in doing so determines that those particularly extreme observations are not really to be trusted. 
+Note that t no pooling (x_average) estimates which are quite extreme are more aggressively pooled towards the overall mean than those which relatively more mean adjacent. The hierarchical model is using the data from the whole sample and in doing so determines that those particularly extreme observations are not to be trusted. 
 
 
 To perform the simulation, I create a function to simulate data and extract the results of fitting the substantive model (y ~ x) using each approach. 
@@ -139,7 +135,7 @@ sim_data <- function(SEED, n, noise_sd){
   x_obs2 = latent_x + rnorm(n, sd = noise_sd),
   ID = seq(1:n))
   
-  d$average_x <- rowMeans(d[,3:4])
+  d$x_average <- rowMeans(d[,3:4])
   
   # hierarchical model
   
@@ -151,14 +147,14 @@ sim_data <- function(SEED, n, noise_sd){
   d$x_hmod <- predict(hmod, newdata = d)
   
   results <- 
-    bind_rows(est_avg = broom::tidy(lm(y ~ average_x, data = d), conf.int = T)[2,],
+    bind_rows(est_avg = broom::tidy(lm(y ~ x_average, data = d), conf.int = T)[2,],
               est_hmod = broom::tidy(lm(y ~ x_hmod, data = d), conf.int = T)[2,])
   
   results
 }
 ```
 
-Now, the simulation is performed for a combination of sample sizes (25, 50, 200) and ICC (0.5, 0.65, 0.80). The latter representing quite poor, reasonable, and good reliability, respectively. 
+Now, the simulation is performed for a combination of sample sizes (25, 100, 500) and ICC (0.5, 0.65, 0.80). The latter representing quite poor, reasonable, and good reliability, respectively. 
 
 ```{r run_sims, warning=FALSE, message=FALSE}
 
@@ -167,7 +163,7 @@ Now, the simulation is performed for a combination of sample sizes (25, 50, 200)
 # ICC = 0.5
 
 out_0.5 <- 
-  expand_grid(SEED = 1:2000, n = c(25, 50, 200)) %>% 
+  expand_grid(SEED = 1:2000, n = c(25, 100, 500)) %>% 
   mutate(res = map2(SEED, n, sim_data, noise_sd = 1)) %>% 
   unnest(res) %>% 
   mutate(ICC = 0.5)
@@ -176,7 +172,7 @@ out_0.5 <-
 # ICC = 0.65
 
 out_0.65 <- 
-  expand_grid(SEED = 1:2000, n = c(25, 50, 200)) %>% 
+  expand_grid(SEED = 1:2000, n = c(25, 100, 500)) %>% 
   mutate(res = map2(SEED, n, sim_data, noise_sd = 0.75)) %>% 
   unnest(res) %>% 
   mutate(ICC = 0.65)
@@ -184,7 +180,7 @@ out_0.65 <-
 # ICC = 0.8
 
 out_0.8 <- 
-  expand_grid(SEED = 1:2000, n = c(25, 50, 200)) %>% 
+  expand_grid(SEED = 1:2000, n = c(25, 100, 500)) %>% 
   mutate(res = map2(SEED, n, sim_data, noise_sd = 0.5)) %>% 
   unnest(res) %>% 
   mutate(ICC = 0.8)
@@ -221,12 +217,12 @@ bind_rows(out_0.5, out_0.65, out_0.8) %>%
 
 ```
 
-Medium sample size (n = 50)
+Medium sample size (n = 100)
 
 ```{r bias_2, warning=FALSE}
 
 bind_rows(out_0.5, out_0.65, out_0.8) %>% 
-  filter(n == 50) %>% 
+  filter(n == 100) %>% 
   mutate(n = str_c("n==", n),
          ICC = str_c("ICC ==", ICC)) %>% 
   ggplot(aes(x = estimate, y = term)) +
@@ -243,12 +239,12 @@ bind_rows(out_0.5, out_0.65, out_0.8) %>%
         legend.position = "none") +
   theme_default()
 ```
-And a large sample size (n = 200)
+And a large sample size (n = 500)
 
 ```{r bias_3, warning=FALSE}
 
 bind_rows(out_0.5, out_0.65, out_0.8) %>% 
-  filter(n == 200) %>% 
+  filter(n == 500) %>% 
   mutate(n = str_c("n==", n),
          ICC = str_c("ICC ==", ICC)) %>% 
   ggplot(aes(x = estimate, y = term)) +
@@ -282,7 +278,7 @@ bind_rows(out_0.5, out_0.65, out_0.8) %>%
   mutate(percent = nn/20) %>% 
   filter(coverage == 1) %>%
   mutate(n = str_c("n==", n),
-         n = factor(n, levels = c("n==25","n==50","n==200"))) %>% 
+         n = factor(n, levels = c("n==25","n==100","n==500"))) %>% 
   ggplot(aes(x = n, y = percent, colour = as.factor(ICC))) +
   geom_hline(aes(yintercept = 93.5), colour = "grey") +
   geom_hline(aes(yintercept = 96.5), colour = "grey") +
@@ -302,8 +298,8 @@ The partial pooling approach produces estimates with approximately nominal cover
   
 ### Conclusion
 
-At least in the context of this rough simulation study, using a hierarchical model to estimate the latent value of an exposure variable from replicated measurements substantially outperforms the method of simply averaging replicates. And this comes at the cost of a very slight increase in analysis complexity. 
+Using a hierarchical model to estimate the latent value of an exposure variable from replicated measurements substantially outperforms the method of simply averaging replicates. And this comes at the cost of little increase in analysis complexity or interpretability. 
 
 Importantly, both of these approaches share one problem. In each case, *model parameters* (estimates from either a linear model or hierarchical linear model) are, incorrectly, treated as if they were data. Treating them this way ignores the uncertainty associated with these parameters. Consequently, we might expect these models to produce overconfident inferences. Nevertheless, this did not seem to have substantial consequences here, at least for the hierarchical approach. A more correct approach may be to instead estimate each of the parts of the model (estimate latent x and regress y on latent x) simultaneously in a more sophisticated hierarchical model. Such a model could be fit in Stan for instance, where each of the submodels, the model for the latent exposure and the outcome model, are fitted within the same Markov Chain. 
 
-Lastly, this simulation isn't particularly realistic. In practise, measurement error may not be so well behaved and there may be other issues such as missing data. Nonetheless, I find it hard to imagine a scenario in which making full use of the sample data via a hierarchical model is not at least as good as the more common averaging approach. 
+Lastly, this simulation doesn't cover many realistic scenarios. In practise, measurement error may not be so well behaved and the true distribution will be unknown. Nonetheless, I find it hard to imagine a scenario in which making full use of the sample data via a hierarchical model is not at least as good as the more common averaging approach. 

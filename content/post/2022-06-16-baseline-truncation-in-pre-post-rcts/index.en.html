@@ -23,13 +23,12 @@ header-includes:
     <script id="MathJax-script" async         src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 ---
 
-<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-<script id="MathJax-script" async         src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script> ¶ <script id="MathJax-script" async         src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
 
 <div id="intro" class="section level3">
 <h3>Intro</h3>
-<p>This is a response to and extension of the excellent recent <a href="https://solomonkurz.netlify.app/post/2022-06-13-just-use-multilevel-models-for-your-pre-post-rct-data/">blog post</a> by Solomon Kurz (hereafter SK) which contrasted a set of four models for pre-post RCT data. In short, the four models were:</p>
+<p>This is a response to and extension of the recent <a href="https://solomonkurz.netlify.app/post/2022-06-13-just-use-multilevel-models-for-your-pre-post-rct-data/">blog post</a> by Solomon Kurz (hereafter SK) which contrasted a set of four modeling options for pre-post RCTs. In short, the four models were:</p>
 <ul>
 <li>classic change score model: Y2 - Y1 ~ treatment</li>
 <li>classic ANCOVA model: Y2 ~ Y1 + treatment</li>
@@ -63,7 +62,7 @@ theme_set(
 </div>
 <div id="simulate-fake-bdi-ii-data" class="section level3">
 <h3>Simulate fake BDI-II data</h3>
-<p>The BDI-II (Beck Depression Inventory) is a widely used tool which is employed to measure the severity of depression symptoms. In depression RCT’s, usually a person has to meet a minimum level of severity to be eligible for inclusion. For instance, a BDI score &gt; 18, indicating moderate-severe depression, is often used as a cut-off. Note that these cut-offs are not limited to psychiatry - for e.g., patients may need to have sufficiently high blood pressure to be eligible for testing a novel antihypertensive.</p>
+<p>The BDI-II (Beck Depression Inventory) is a widely used tool which is employed to measure the severity of depression symptoms. In depression RCT’s, usually a person has to meet a minimum level of severity to be eligible for inclusion. For instance, a BDI score &gt; 18, indicating moderate-severe depression, is often used as a cut-off. Note that these cut-offs are not limited to psychiatry - for e.g., patients may need to have sufficiently high blood pressure to be eligible for testing an antihypertensive.</p>
 <p>We presume that the population expressing interest in the RCT has a mean BDI score of 20 and standard deviation of 6. For this first example, we will apply a threshold of 20 for inclusion. This means that on average half of those individuals in the application pool will be below the threshold for participating.</p>
 <pre class="r"><code>sim_data &lt;- function(seed = seed, n = n, tau = tau, rho = rho,
                      threshold = threshold) {
@@ -90,7 +89,7 @@ theme_set(
   d %&gt;% filter(pre &gt; threshold)
 
 }</code></pre>
-<p>An example dataset is created. We set the treatment effect to a reduction of BDI score of 6 points (equivalent to Cohen’s d of -1).</p>
+<p>An example dataset is created. We set the treatment effect to a reduction of BDI score of 6 points.</p>
 <pre class="r"><code># generate data
 dw &lt;- sim_data(seed = 1, n = 300, tau = -6, rho = .5,
                threshold = 20)
@@ -127,6 +126,11 @@ dl %&gt;%
   scale_y_continuous(sec.axis = dup_axis(name = NULL)) +
   ggtitle(expression(&quot;100 draws from the population for which &quot;*tau==-6)) +
   facet_wrap(~ tx, labeller = label_both)</code></pre>
+<pre><code>## Warning: Using `size` aesthetic for lines was deprecated in ggplot2 3.4.0.
+## ℹ Please use `linewidth` instead.
+## This warning is displayed once every 8 hours.
+## Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
+## generated.</code></pre>
 <p><img src="{{< blogdown/postref >}}index.en_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
 </div>
 <div id="simulation-study" class="section level3">
@@ -252,8 +256,13 @@ sim.7.20 &lt;- tibble(seed = 1:2000) %&gt;%
   theme(axis.text.y = element_text(hjust = 0),
         legend.position = &quot;none&quot;) +
   facet_wrap(vars(rho, threshold), labeller = label_parsed)</code></pre>
+<pre><code>## Warning: `stat(x)` was deprecated in ggplot2 3.4.0.
+## ℹ Please use `after_stat(x)` instead.
+## This warning is displayed once every 8 hours.
+## Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
+## generated.</code></pre>
 <p><img src="{{< blogdown/postref >}}index.en_files/figure-html/unnamed-chunk-8-1.png" width="672" /></p>
-<p>All of the methods appear to be unbiased.</p>
+<p>All of the methods are unbiased.</p>
 <p>The efficiency (standard error of the treatment effect) is displayed for each of the combinations of method, correlation, and inclusion threshold.</p>
 <pre class="r"><code>### Efficiency 
 
@@ -366,7 +375,7 @@ AIC(l1, dm1)</code></pre>
 <pre><code>##     df      AIC
 ## l1   5 1747.420
 ## dm1  6 1728.437</code></pre>
-<p>There is unambiguous evidence that the distributional model produces better fit to data (lower AIC) in this context.</p>
+<p>There is unambiguous evidence that the distributional model produces better fit to data (lower AIC).</p>
 <p>What about with more modest truncation (threshold of 16)?</p>
 <pre class="r"><code># generate data
 dw &lt;- sim_data(seed = 1, n = 160, tau = -6, rho = .5,
