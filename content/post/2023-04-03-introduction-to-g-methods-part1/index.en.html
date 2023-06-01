@@ -32,16 +32,16 @@ projects: []
 <div id="identification-assumptions" class="section level3">
 <h3>Identification assumptions</h3>
 <p>The three core assumptions or conditions required to link observed data with counterfactual/potential outcomes are as follows:</p>
-<div id="consistency" class="section level4">
-<h4><em>Consistency</em></h4>
+<div id="consistency" class="section level6">
+<h6><em>Consistency</em></h6>
 <p>Consistency (a.k.a well-defined intervention assumption) is the assumption that the potential outcome for an individual is equal to their observed outcome for the treatment they actually received. Formally, <span class="math inline">\(Y^a = Y\)</span> for individuals with <span class="math inline">\(A = a\)</span>. This means that interventions must be sufficiently well-defined in order for potential outcomes <span class="math inline">\(Y^a\)</span> to be well-defined.</p>
 </div>
-<div id="conditional-exhangeability" class="section level4">
-<h4><em>(Conditional) exhangeability</em></h4>
+<div id="conditional-exhangeability" class="section level6">
+<h6><em>(Conditional) exhangeability</em></h6>
 <p>Conditional exchangeability implies that, within levels of the measured confounding variables <span class="math inline">\(L\)</span>, treated and untreated groups are exchageable. In other words, treatment is effectively randomly assigned within levels of the measured confounding variables.</p>
 </div>
-<div id="positivity" class="section level4">
-<h4><em>Positivity</em></h4>
+<div id="positivity" class="section level6">
+<h6><em>Positivity</em></h6>
 <p>For all individuals, there is some (positive) chance of receiving each of the treatment levels. Formally, <span class="math inline">\(Pr[A=a|L=l] &gt; 0\)</span> for all <span class="math inline">\(Pr[L=l] &gt; 0\)</span>.</p>
 <p>When these three essential conditions are met (or approximately met) for an observational study, we may then estimate causal effects with the data we have at hand. One set of methods to do so are referred to as the <em>g-methods</em>, a set of methods for estimating treatment effects in the context of time fixed or time-varying treatments.</p>
 <p>Ignoring a third method (g-estimation) which is not particularly well supported by popular software, the g-methods consists of two main strategies for estimating treatment effects: the g-formula and inverse probability of treatment weighting (IPTW) of marginal structural models. Each method will now be described with an applied example of a time-fixed treatment.</p>
@@ -151,13 +151,12 @@ boot.ci(boot_out, conf = 0.95, type = &quot;norm&quot;)</code></pre>
 ## 
 ## Intervals : 
 ## Level      Normal        
-## 95%   ( 2.531,  4.551 )  
+## 95%   ( 2.579,  4.485 )  
 ## Calculations and Intervals on Original Scale</code></pre>
 <p>The bootstrap 95% confidence interval ranges from 2.6 to 4.5.</p>
 <p>There are other, less computationally costly, means of obtaining confidence intervals - the delta method and simulation.</p>
-</div>
-<div id="delta-method" class="section level4">
-<h4><em>Delta method</em></h4>
+<div id="delta-method" class="section level6">
+<h6><em>Delta method</em></h6>
 <p>THe R package <a href="https://vincentarelbundock.github.io/marginaleffects/">marginaleffects</a> applies the parametric g-formula and computes standard errors using the delta method:</p>
 <pre class="r"><code>library(marginaleffects)
 
@@ -170,8 +169,8 @@ avg_comparisons(fit, variables = list(qsmk = 0:1))</code></pre>
 ## 
 ## Columns: term, contrast, estimate, std.error, statistic, p.value, conf.low, conf.high</code></pre>
 </div>
-<div id="simulation" class="section level4">
-<h4><em>Simulation</em></h4>
+<div id="simulation" class="section level6">
+<h6><em>Simulation</em></h6>
 <p>Confidence intervals for the average treatment effect can also be computed by simulation using R package <a href="https://iqss.github.io/clarify/">clarify</a>.</p>
 <pre class="r"><code>library(clarify)
 
@@ -181,11 +180,12 @@ sim_est &lt;- sim_ame(sim_coefs, var = &quot;qsmk&quot;, contrast = &quot;diff&q
 
 summary(sim_est)</code></pre>
 <pre><code>##         Estimate 2.5 % 97.5 %
-## E[Y(0)]     1.76  1.33   2.17
-## E[Y(1)]     5.27  4.54   5.99
-## Diff        3.52  2.67   4.33</code></pre>
+## E[Y(0)]     1.76  1.32   2.19
+## E[Y(1)]     5.27  4.54   6.01
+## Diff        3.52  2.69   4.33</code></pre>
 <p>The confidence intervals produced by all three methods are similar.</p>
 <p>Beyond the core identification conditions described above, there is another essential assumption for the parametric g-formula to be unbiased. That is that the conditional mean outcome model is correctly specified. Even if you have meausured all important confounders you may not get an unbiased causal effect estimate from this method if you have misspecified the model (e.g., missed important interactions or non-linearities). The method described in the next section relies on a different modelling assumption - that is, that the model for <em>treatment</em> is correctly specified.</p>
+</div>
 </div>
 </div>
 <div id="ipt-weighting" class="section level3">
@@ -357,22 +357,22 @@ tmle.out &lt;- tmle(Y = nhefs$wt82_71,
 <pre><code>## Loading required namespace: xgboost</code></pre>
 <pre class="r"><code>tmle.out</code></pre>
 <pre><code>##  Additive Effect
-##    Parameter Estimate:  3.4302
-##    Estimated Variance:  0.2156
-##               p-value:  1.4972e-13
-##     95% Conf Interval: (2.5201, 4.3403) 
+##    Parameter Estimate:  3.5157
+##    Estimated Variance:  0.19609
+##               p-value:  2.0355e-15
+##     95% Conf Interval: (2.6477, 4.3836) 
 ## 
 ##  Additive Effect among the Treated
-##    Parameter Estimate:  3.4792
-##    Estimated Variance:  0.21852
-##               p-value:  9.8539e-14
-##     95% Conf Interval: (2.563, 4.3954) 
+##    Parameter Estimate:  3.4514
+##    Estimated Variance:  0.21233
+##               p-value:  6.8838e-14
+##     95% Conf Interval: (2.5482, 4.3546) 
 ## 
 ##  Additive Effect among the Controls
-##    Parameter Estimate:  3.4559
-##    Estimated Variance:  0.2216
-##               p-value:  2.1141e-13
-##     95% Conf Interval: (2.5333, 4.3786)</code></pre>
+##    Parameter Estimate:  3.5489
+##    Estimated Variance:  0.19644
+##               p-value:  1.1735e-15
+##     95% Conf Interval: (2.6802, 4.4177)</code></pre>
 <p>The estimate and confidence interval are very similar to those from previous methods. Which might indicate that our parameteric models were reasonably well-specified, though it remains uncertain whether other conditions (such as no unmeasured confounding) are satisfied.</p>
 </div>
 <div id="references" class="section level3">

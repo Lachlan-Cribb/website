@@ -35,15 +35,15 @@ Given that the expression above deals with quantities which are at best only par
 
 The three core assumptions or conditions required to link observed data with counterfactual/potential outcomes are as follows: 
 
-#### *Consistency* ####
+###### *Consistency* ######
 
 Consistency (a.k.a well-defined intervention assumption) is the assumption that the potential outcome for an individual is equal to their observed outcome for the treatment they actually received. Formally, $Y^a = Y$ for individuals with $A = a$. This means that interventions must be sufficiently well-defined in order for potential outcomes $Y^a$ to be well-defined.
 
-#### *(Conditional) exhangeability* #### 
+###### *(Conditional) exhangeability* ######
 
 Conditional exchangeability implies that, within levels of the measured confounding variables $L$, treated and untreated groups are exchageable. In other words, treatment is effectively randomly assigned within levels of the measured confounding variables.
 
-#### *Positivity* ####
+###### *Positivity* ######
 
 For all individuals, there is some (positive) chance of receiving each of the treatment levels. Formally, $Pr[A=a|L=l] > 0$ for all $Pr[L=l] > 0$. 
 
@@ -179,7 +179,7 @@ The bootstrap 95% confidence interval ranges from 2.6 to 4.5.
 
 There are other, less computationally costly, means of obtaining confidence intervals - the delta method and simulation. 
 
-#### *Delta method* ####
+###### *Delta method* ######
 THe R package [marginaleffects](https://vincentarelbundock.github.io/marginaleffects/) applies the parametric g-formula and computes standard errors using the delta method: 
 
 ```{r delta method}
@@ -190,7 +190,7 @@ library(marginaleffects)
 avg_comparisons(fit, variables = list(qsmk = 0:1))
 ```
 
-#### *Simulation* ####
+###### *Simulation* ######
 
 Confidence intervals for the average treatment effect can also be computed by simulation using R package [clarify](https://iqss.github.io/clarify/). 
 
