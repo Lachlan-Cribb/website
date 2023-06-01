@@ -24,24 +24,33 @@ projects: []
 The goal of causally motivated epidemiology research is often to estimate the average treatment effect (ATE). For a binary treatment or exposure $A$ the ATE on the difference scale is defined like so: 
 $$ E[Y_i^{a=1} - Y_i^{a=0}]$$
 
-Where $Y_i^{a=1}$ denotes the value of the outcome variable when treatment is given for participant $i$ and $Y_i^{a=0}$ denotes the value of the outcome variable when treatment is not given, respectively (from here on out, the $i$ subscript will be treated as implicit). As participants in a study only receive one of the two treatments on offer (they are either treated or untreated), only one these outcomes is actually observed for a given individual. For this reason, the outcomes $Y^{a=1}$ and $Y^{a=0}$ are often referred to as *potential* or *counterfactual* outcomes as they represent the value of the outcome variable in an individual had they, potentially counter-to-fact, received the treatment level $a$. 
+Where $Y_i^{a=1}$ denotes the value of the outcome variable when treatment is given for participant $i$ and $Y_i^{a=0}$ denotes the value of the outcome variable when treatment is not given, respectively (from here on, the $i$ subscript will be implicit). As participants in a study only receive one of the two treatments on offer (they are either treated or untreated), only one these outcomes is actually observed for a given individual. For this reason, the outcomes $Y^{a=1}$ and $Y^{a=0}$ are often referred to as *potential* or *counterfactual* outcomes as they represent the value of the outcome variable in an individual had they, potentially counter-to-fact, received the treatment level $a$. 
 
-The expression above quantifies the average difference between the two potential outcomes. Put another way, it quantifies the average difference in the level of $Y$ in a hypothetical world in which everyone been treated ($a=1$) and the level of $Y$ in a hypothetical world in which no-one had been treated ($a=0$), all else being equal. It is the estimated effect of moving the entire population from untreated to treated. (Note that the subtraction in the expression above could be replaced by division, in which case the average treatment effect would then be on the multiplicative scale, e.g. a causal risk ratio for a binary outcome). 
+The expression above quantifies the average difference between the two potential outcomes. Put another way, it quantifies the average difference in the level of $Y$ in a hypothetical world in which everyone been treated ($a=1$) and the level of $Y$ in a hypothetical world in which no-one had been treated ($a=0$), all else being equal. It is the estimated effect of moving the entire population from untreated to treated.
 
-Given that the expression above deals with quantities which are by their very nature unobservable, an obvious question is then how can we estimate this treatment effect with real data? To do so, a few (mostly untestable) assumptions are required. 
+Given that the expression above deals with quantities which are at best only partially observed, an obvious question is then how can we estimate this treatment effect with real data? To do so, a few (mostly untestable) assumptions are required. 
 
 
 ### Identification assumptions ###
 
 The three core assumptions or conditions required to link observed data with counterfactual/potential outcomes are as follows: 
 
-* Consistency (a.k.a well-defined intervention assumption): The potential outcome for an individual is equal to their observed outcome for the treatment they actually received. Formally, $Y^a = Y$ for individuals with $A = a$. What this means is that interventions must be sufficiently well-defined in order for potential outcomes $Y^a$ to be well-defined.
-* (Conditional) exhangeability: Within levels of the measured confounding variables $L$, treated and untreated groups are exchageable. In other words, treatment is effectively randomly assigned within levels of the measured confounding variables.
-* Positivity: For all individuals, there is some (positive) chance of receiving each of the treatment levels. Formally, $Pr[A=a|L=l] > 0$ for all $Pr[L=l] > 0$. 
+#### *Consistency* ####
 
-When these three essential conditions are met (or approximately met) for an observational study, we may then estimate causal effects with the data we have at hand. One set of methods to do so are referred to as the *g-methods*, a set of methods for estimating treatment effects in the context of time fixed or time-varying treatments (g-methods are in fact almost essential for the latter). 
+Consistency (a.k.a well-defined intervention assumption) is the assumption that the potential outcome for an individual is equal to their observed outcome for the treatment they actually received. Formally, $Y^a = Y$ for individuals with $A = a$. This means that interventions must be sufficiently well-defined in order for potential outcomes $Y^a$ to be well-defined.
 
-Ignoring a third method (g-estimation) which is not particularly well supported by popular software, the g-methods consists of two main strategies for estimating treatment effects: the g-formula and inverse probability of treatment weighting (IPTW) of marginal structural models. Though both of these methods rely on the same set of identification conditions (those described above), they make a different set of modelling assumptions. Each method will now be described with an applied example of a time-fixed treatment. 
+#### *(Conditional) exhangeability* #### 
+
+Conditional exchangeability implies that, within levels of the measured confounding variables $L$, treated and untreated groups are exchageable. In other words, treatment is effectively randomly assigned within levels of the measured confounding variables.
+
+#### *Positivity* ####
+
+For all individuals, there is some (positive) chance of receiving each of the treatment levels. Formally, $Pr[A=a|L=l] > 0$ for all $Pr[L=l] > 0$. 
+
+
+When these three essential conditions are met (or approximately met) for an observational study, we may then estimate causal effects with the data we have at hand. One set of methods to do so are referred to as the *g-methods*, a set of methods for estimating treatment effects in the context of time fixed or time-varying treatments. 
+
+Ignoring a third method (g-estimation) which is not particularly well supported by popular software, the g-methods consists of two main strategies for estimating treatment effects: the g-formula and inverse probability of treatment weighting (IPTW) of marginal structural models. Each method will now be described with an applied example of a time-fixed treatment. 
 
 ### The g-formula ###
 
@@ -64,13 +73,15 @@ $$
 \frac{1}{n}\sum_{i=1}^{n}\hat{E}[Y|A=a, L_i]
 $$
 
-In effect, we are averaging over the distribution of confounders $L$ in the sample (this process is also known as *standardisation*). The computational means for doing this are straightforward. It proceeds like so:
+In effect, we are averaging over the distribution of confounders $L$ in the sample (this process is also known as *standardisation*). The computational means for doing this are straightforward. 
+
+It proceeds like so:
 
 1) Fit a model (e.g., linear or logistic regression) for the conditional mean of the outcome given treatment and confounders
-1) Create two copies of the dataset. In the first, set treatment to 0 (untreated) and in the second, set treatment to 1 (treated)
-2) Calculate predicted values $\hat{E}[Y|A=a,L=l]$ from the fitted model for each of the two artificial datasets
-3) Average each set of predicted values to get $E[Y^{a=1}]$ and $E[Y^{a=0}]$
-4) Contrast the predicted values. E.g., $E[Y^{a=1}] - E[Y^{a=0}]$ or $\frac{E[Y^{a=1}]}{E[Y^{a=0}]}$
+2) Create two copies of the dataset. In the first, set treatment to 0 (untreated) and in the second, set treatment to 1 (treated)
+3) Calculate predicted values $\hat{E}[Y|A=a,L=l]$ from the fitted model for each of the two artificial datasets
+4) Average each set of predicted values to get $E[Y^{a=1}]$ and $E[Y^{a=0}]$
+5) Contrast the predicted values. E.g., $E[Y^{a=1}] - E[Y^{a=0}]$ or $\frac{E[Y^{a=1}]}{E[Y^{a=0}]}$
 
 When a parametric model (such as a linear model) is used to estimate the conditional mean of the outcome given treatment and the confounders, this method is referred to as the *parametric g-formula*. 
 
@@ -108,7 +119,7 @@ nhefs.0$qsmk <- 0
 nhefs.1$qsmk <- 1
 ```
 
-For the final two steps, we calculate predictions for each of the artificial datasets, take their average, and contrast them. 
+For the final three steps, we calculate predictions for each of the artificial datasets, take their average, and contrast them. 
 
 ```{r standardisation effect}
 
@@ -127,7 +138,7 @@ print(paste("E[Y(1)] - E[Y(0)] = ",round(treatment_effect,2)))
 The estimated effect of smoking cessation, relative to no cessation, is a weight gain of 3.52 kg. 
 
 
-#### Standard errors for g-formula estimates ####
+#### Confidence intervals for g-formula estimates ####
 
 There are several ways to obtain confidence intervals for a g-formula estimate. One relatively straightforward option is bootstrapping.
 
@@ -166,9 +177,10 @@ boot.ci(boot_out, conf = 0.95, type = "norm")
 
 The bootstrap 95% confidence interval ranges from 2.6 to 4.5. 
 
-There are other, less computationally costly, means of obtaining confidence intervals - the delta method and simulation. We will check how well the above bootstrap intervals agree with those obtained with the delta method using R package [marginaleffects](https://vincentarelbundock.github.io/marginaleffects/) and with those obtained by simulation using R package [clarify](https://iqss.github.io/clarify/). 
+There are other, less computationally costly, means of obtaining confidence intervals - the delta method and simulation. 
 
-First, the delta method: 
+#### *Delta method* ####
+THe R package [marginaleffects](https://vincentarelbundock.github.io/marginaleffects/) applies the parametric g-formula and computes standard errors using the delta method: 
 
 ```{r delta method}
 library(marginaleffects)
@@ -178,7 +190,10 @@ library(marginaleffects)
 avg_comparisons(fit, variables = list(qsmk = 0:1))
 ```
 
-Next, by simulation:
+#### *Simulation* ####
+
+Confidence intervals for the average treatment effect can also be computed by simulation using R package [clarify](https://iqss.github.io/clarify/). 
+
 ```{r simulated intervals}
 library(clarify)
 
@@ -206,9 +221,9 @@ $$
 W^A = \frac{f(A)}{f(A|L)}
 $$
 
-Stabilised weights are preferable to unstabilised weights for the additional reason that they are useful more generally (e.g., when exposure is a continuous variable, in which case unstabilised weights are unviable).
+Now we will again estimate the causal effect of smoking cessation on weight gain, this time using IPT weighting rather than the parametric g-formula. We will use stabilised IPT weights.
 
-Now we will again estimate the causal effect of smoking cessation on weight gain, this time using IPT weighting rather than the parametric g-formula. We will use stabilised IPT weights. The steps are as follows:
+The steps are as follows:
 
 1) Use logistic regression to estimate the numerator of the weights. I.e., the marginal probability of treatment 
 2) Use logistic regression to estimate the denominator of the weights. I.e., the coditional probability of treatment given confounders $L$ 
