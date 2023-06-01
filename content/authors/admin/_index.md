@@ -67,6 +67,6 @@ social:
 #highlight_name: true
 ---
 
-I am a PhD student working on causal inference methods with a particular applied focus in observational dementia research.
+I am a PhD student working on causal inference methods with an applied focus in dementia prevention.
 
 I will be using this website to share notes on causal inference concepts, stats and R programming, and whatever other issues I run into along the way. 
