@@ -67,6 +67,6 @@ social:
 #highlight_name: true
 ---
 
-I am a PhD student working on causal inference methods with an applied focus in dementia prevention.
+I am a PhD student at Monash University, Australia, working on causal inference methods with an applied focus in dementia prevention.
 
-I will be using this website to share notes on causal inference concepts, stats and R programming, and whatever other issues I run into along the way. 
+I will be using this website to share notes on causal inference concepts, stats and R programming, and any other topics that might be interesting or useful.
