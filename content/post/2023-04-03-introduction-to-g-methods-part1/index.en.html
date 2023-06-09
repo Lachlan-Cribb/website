@@ -26,9 +26,11 @@ h2 {
   text-align: center;
 }
 </style>
+<p>This is the first post in a series looking at g-methods and their doubly robust extensions for estimating causal effects in epidemiological research. This one is focused on time fixed treatments (or exposures) and the second will cover the case of time varying treatments. My main goal with writing this was to improve my own understanding and I’m hopeful that it might be useful to anyone else getting familiar with the field.</p>
+<p>Big thank you to Noah Greifer for some very helpful notes on a previous version.</p>
 <div id="potential-outcomes" class="section level2">
 <h2>Potential outcomes</h2>
-<p>The goal of causally motivated epidemiology research is often to estimate the <em>average treatment effect</em> (ATE). For a binary treatment or exposure <span class="math inline">\(A\)</span> the ATE on the difference scale is defined as:
+<p>The goal of causally motivated epidemiology research is often to estimate the <strong>average treatment effect</strong> (ATE). For a binary treatment or exposure <span class="math inline">\(A\)</span> the ATE on the difference scale is defined as:
 <span class="math display">\[ E[Y_i^{a=1} - Y_i^{a=0}]\]</span></p>
 <p>Where <span class="math inline">\(Y_i^{a=1}\)</span> denotes the value of the outcome variable when treatment is given for individual <span class="math inline">\(i\)</span> and <span class="math inline">\(Y_i^{a=0}\)</span> denotes the value of the outcome variable when treatment is not given for individual <span class="math inline">\(i\)</span> (from here on, the <span class="math inline">\(i\)</span> subscript will be implicit). As individuals in a study only receive one of the two treatments on offer (they are either treated or untreated), only one these outcomes is actually observed for a given individual. For this reason, the outcomes <span class="math inline">\(Y^{a=1}\)</span> and <span class="math inline">\(Y^{a=0}\)</span> are often referred to as <em>potential</em> or <em>counterfactual</em> outcomes as they represent the value of the outcome variable in an individual had they, potentially counter-to-fact, received the treatment level <span class="math inline">\(a\)</span>.</p>
 <p>The ATE quantifies the average difference between the two potential outcomes. Put another way, it quantifies the average difference in the level of <span class="math inline">\(Y\)</span> in a hypothetical world in which everyone been treated (<span class="math inline">\(a=1\)</span>) and the level of <span class="math inline">\(Y\)</span> in a hypothetical world in which no-one had been treated (<span class="math inline">\(a=0\)</span>), all else being equal. It is the estimated effect of moving the entire population from untreated to treated.</p>
@@ -39,7 +41,7 @@ h2 {
 <div id="consistency" class="section level6">
 <h6><em>Consistency</em></h6>
 <p>Consistency is the assumption that the potential outcome for an individual is equal to their observed outcome for the treatment they actually received. Formally, <span class="math inline">\(Y^a = Y\)</span> for individuals with <span class="math inline">\(A = a\)</span>. In other words, the interventions in question must be linked to the observed data (at least some people must have been exposed to intervention <span class="math inline">\(a\)</span>) and the intervention must be sufficiently well defined for the potential outcomes <span class="math inline">\(Y^a\)</span> to be well-defined.</p>
-<p>Vague causal questions are often a challenge for consistency. Consider the potential outcome ‘risk of stroke under 5 kilograms of weight loss by age 60.’ Of course, one wouldn’t expect that losing 5kg by becoming a heavy smoker would lead to an equivalent risk of stroke to losing 5kg by taking up an exercise regime.</p>
+<p>Vague causal questions are often a challenge for consistency. Consider the potential outcome ‘risk of stroke under 5 kilograms of weight loss by age 60.’ Of course, one wouldn’t expect that losing 5kg by becoming a heavy smoker would lead to an equivalent risk of stroke to losing 5kg by taking up an intensive exercise regime.</p>
 </div>
 <div id="conditional-exhangeability" class="section level6">
 <h6><em>(Conditional) exhangeability</em></h6>
@@ -49,13 +51,13 @@ h2 {
 <h6><em>Positivity</em></h6>
 <p>Positivity implies that for all individuals, there is some (positive) chance of receiving each of the treatment levels. Formally, <span class="math inline">\(Pr[A=a|L=l] &gt; 0\)</span> for all <span class="math inline">\(Pr[L=l] &gt; 0\)</span>. Positivity violations can be <em>random</em> or <em>structural</em>. Structural nonpositivity occurs when a subgroup cannot possibly be treated (or untreated). Random nonpositivity occurs when, by chance alone, some strata within <span class="math inline">\(L\)</span> are exclusively treated or untreated.</p>
 <p>When these three essential conditions are met (or approximately met) for a study, we may then estimate causal effects with the data we have at hand. One set of methods to do so are referred to as the <em>g-methods</em>, a set of methods for estimating treatment effects in the context of time fixed or time-varying treatments.</p>
-<p>Ignoring a third method (g-estimation) which is not particularly well supported by popular software, the g-methods consists of two main strategies for estimating treatment effects: the <em>g-formula</em> and <em>inverse probability of treatment weighting</em> (IPTW). Each method will now be described with an applied example of a time-fixed treatment.</p>
+<p>The g-methods consists of two main strategies for estimating treatment effects: the <em>g-formula</em> and <em>inverse probability of treatment weighting</em> (IPTW). (There is a third method, g-estimation, which is not particularly well supported by popular software so won’t be discussed here. I apologise for the terminology, I’m not responsible!). Each method will now be introduced and applied with an example of a time-fixed treatment.</p>
 </div>
 </div>
 </div>
 <div id="the-g-formula" class="section level2">
 <h2>The g-formula</h2>
-<p>Assuming exchangeability, positivity and consistency, the g-formula for a time fixed treatment is:</p>
+<p>Assuming exchangeability, positivity and consistency hold, the g-formula for a time fixed treatment is:</p>
 <p><span class="math display">\[
 E[Y^a] = \sum_l E[Y|A=a,L=l]Pr[L=l]
 \]</span></p>
@@ -157,7 +159,7 @@ boot.ci(boot_out, conf = 0.95, type = &quot;perc&quot;)</code></pre>
 ## 
 ## Intervals : 
 ## Level     Percentile     
-## 95%   ( 2.543,  4.409 )  
+## 95%   ( 2.506,  4.410 )  
 ## Calculations and Intervals on Original Scale</code></pre>
 </div>
 <div id="r-packages-for-the-parametric-g-formula" class="section level3">
@@ -185,9 +187,9 @@ sim_est &lt;- sim_ame(sim_coefs, var = &quot;qsmk&quot;, contrast = &quot;diff&q
 
 summary(sim_est)</code></pre>
 <pre><code>##         Estimate 2.5 % 97.5 %
-## E[Y(0)]     1.76  1.35   2.21
-## E[Y(1)]     5.27  4.55   6.03
-## Diff        3.52  2.65   4.34</code></pre>
+## E[Y(0)]     1.76  1.33   2.14
+## E[Y(1)]     5.27  4.50   5.97
+## Diff        3.52  2.65   4.33</code></pre>
 <p>The confidence intervals produced by all three methods are similar.</p>
 <p>Beyond the core identification conditions described above, there is another essential assumption for the parametric g-formula to be unbiased. That is that the conditional mean outcome model is correctly specified. Even if you have meausured all important confounders you may still have bias if you have misspecified the model (e.g., missed important interactions or non-linearities). The method described in the next section relies on a different modelling assumption - that is, that the model for <em>treatment</em> is correctly specified.</p>
 </div>
@@ -264,39 +266,35 @@ ip_weights &lt;-
            method = &quot;glm&quot;, data = nhefs,
            estimand = &quot;ATE&quot;)</code></pre>
 <p>As discussed by <a href="https://onlinelibrary.wiley.com/doi/10.1002/sim.6607">Austin &amp; Stuart (2015)</a>, it is best practise to assess that the estimated weights are working as they should and that measured confounders are balanced across levels of treatment in the pseudopopulation produced by the weights. This can be easily checked using The <em>bal.tab</em> function of the <a href="%22https://ngreifer.github.io/cobalt/index.html%22">cobalt</a> package.</p>
-<p>We’ll use cobalt to assess balance in terms of standardised mean differences for continuous variables and proportion differences for binary variables. We’ll also compare variances for continuous variables.</p>
+<p>We’ll use cobalt to assess balance in terms of standardised mean differences for continuous variables and proportion differences for binary variables. We’ll also compute the Kolmogorov–Smirnov statistic, as Austin and Stuart recommend.</p>
 <pre class="r"><code>library(cobalt)</code></pre>
 <pre><code>##  cobalt (Version 4.5.1, Build Date: 2023-04-27)</code></pre>
-<pre class="r"><code>balance &lt;- 
-  bal.tab(ip_weights,
-          thresholds = c(m = .05, v = 1.5))
-
-print(balance,
-      disp.thresholds = c(m = FALSE, v = FALSE))</code></pre>
+<pre class="r"><code>bal.tab(ip_weights,
+        stats = c(&quot;m&quot;, &quot;ks&quot;))</code></pre>
 <pre><code>## Balance Measures
-##                              Type Diff.Adj V.Ratio.Adj
-## prop.score               Distance   0.0098      1.0056
-## sex                        Binary  -0.0014           .
-## race                       Binary   0.0023           .
-## poly(age, 2)1             Contin.   0.0058      1.0073
-## poly(age, 2)2             Contin.   0.0034      0.9788
-## education_1                Binary  -0.0102           .
-## education_2                Binary   0.0010           .
-## education_3                Binary   0.0020           .
-## education_4                Binary   0.0070           .
-## education_5                Binary   0.0003           .
-## poly(smokeintensity, 2)1  Contin.  -0.0241      0.9630
-## poly(smokeintensity, 2)2  Contin.  -0.0127      1.0757
-## poly(smokeyrs, 2)1        Contin.  -0.0035      1.0141
-## poly(smokeyrs, 2)2        Contin.   0.0109      0.9598
-## exercise_0                 Binary  -0.0046           .
-## exercise_1                 Binary   0.0182           .
-## exercise_2                 Binary  -0.0136           .
-## active_0                   Binary  -0.0089           .
-## active_1                   Binary   0.0141           .
-## active_2                   Binary  -0.0051           .
-## poly(wt71, 2)1            Contin.  -0.0090      1.0009
-## poly(wt71, 2)2            Contin.   0.0039      0.7487
+##                              Type Diff.Adj KS.Adj
+## prop.score               Distance   0.0098 0.0425
+## sex                        Binary  -0.0014 0.0014
+## race                       Binary   0.0023 0.0023
+## poly(age, 2)1             Contin.   0.0058 0.0293
+## poly(age, 2)2             Contin.   0.0034 0.0340
+## education_1                Binary  -0.0102 0.0102
+## education_2                Binary   0.0010 0.0010
+## education_3                Binary   0.0020 0.0020
+## education_4                Binary   0.0070 0.0070
+## education_5                Binary   0.0003 0.0003
+## poly(smokeintensity, 2)1  Contin.  -0.0241 0.0310
+## poly(smokeintensity, 2)2  Contin.  -0.0127 0.0307
+## poly(smokeyrs, 2)1        Contin.  -0.0035 0.0428
+## poly(smokeyrs, 2)2        Contin.   0.0109 0.0468
+## exercise_0                 Binary  -0.0046 0.0046
+## exercise_1                 Binary   0.0182 0.0182
+## exercise_2                 Binary  -0.0136 0.0136
+## active_0                   Binary  -0.0089 0.0089
+## active_1                   Binary   0.0141 0.0141
+## active_2                   Binary  -0.0051 0.0051
+## poly(wt71, 2)1            Contin.  -0.0090 0.0358
+## poly(wt71, 2)2            Contin.   0.0039 0.0515
 ## 
 ## Effective sample sizes
 ##            Control Treated
@@ -383,28 +381,33 @@ paste(&quot;AIPW ATE =&quot;, round(aipw_out,2))</code></pre>
 <div id="aipw-using-superlearner" class="section level3">
 <h3>AIPW using SuperLearner</h3>
 <p>Previously, we have estimated causal effects using the standard parametric models linear and logistic regression (this was by no means a requirement, the g-formula and IPTW are compatible with other choices but these were chosen for ease of demonstration). A problem with these simple parametric models is that they tend to impose restrictions on the manner in which covariates are related to the treatment or outcome. For instance, they often assume there are no or few interactions and that continuous variables are linearly related to the outcome/treatment. Consequently, some amount of model mispecification is very likely in real settings. By contrast, highly flexible machine learning models impose few such restrictions and may be less prone to misspecification related bias.</p>
-<p>To venture into the world of machine learning, we will apply the AIPW estimator using the R package <a href="https://github.com/ehkennedy/npcausal">npcausal</a>. npcausal makes use of the <a href="https://cran.r-project.org/web/packages/SuperLearner/vignettes/Guide-to-SuperLearner.html#background">SuperLearner</a> algorithm to estimate <span class="math inline">\(\hat{Y_1}_i\)</span>, <span class="math inline">\(\hat{Y_0}_i\)</span>, and <span class="math inline">\(\hat{PS_i}\)</span> in the above expression. SuperLearner is a stacking algorithm which uses several user specified machine learning algorithms, estimates their performance using cross-validation, and then computes an optimally weighted average of those models predictions (an “ensemble”).</p>
-<p>To estimate the effect of smoking cessation, we will use AIPW with generalised linear models, penalised maximum likelihood (glmnet), random forests, and Bayesian adaptive regression trees (BART) included in the SuperLearner algorithm. Standard errors are computed based on the efficient influence curve.</p>
+<p>To venture into the world of machine learning, we will apply the AIPW estimator using the R package <a href="https://academic.oup.com/aje/article/190/12/2690/6322284">AIPW</a>. AIPW makes use of the <a href="https://cran.r-project.org/web/packages/SuperLearner/vignettes/Guide-to-SuperLearner.html#background">SuperLearner</a> algorithm to estimate <span class="math inline">\(\hat{Y_1}_i\)</span>, <span class="math inline">\(\hat{Y_0}_i\)</span>, and <span class="math inline">\(\hat{PS_i}\)</span> in the above expression. SuperLearner is a stacking algorithm which uses several user specified machine learning algorithms, estimates their performance using cross-validation, and then computes an optimally weighted average of those models predictions (an “ensemble”).</p>
+<p>To estimate the effect of smoking cessation, we will use AIPW with generalised linear models, penalised maximum likelihood (glmnet), random forests, and Bayesian adaptive regression trees (BART) included in the SuperLearner algorithm. We’ll run it across 6 cores as a speed up. Standard errors are computed based on the efficient influence curve.</p>
 <pre class="r"><code>library(SuperLearner)
-library(npcausal)
+library(AIPW)
+library(future.apply)
+
+plan(multisession, workers=6, gc=T)
 
 confounds &lt;- 
   select(nhefs, sex, race, age, education, 
          smokeintensity, smokeyrs, exercise, active, wt71)
 
-ate_out &lt;- 
-  ate(y = nhefs$wt82_71,
-  a = nhefs$qsmk,
-  x = confounds,
-  sl.lib = c(&quot;SL.glm&quot;,&quot;SL.glmnet&quot;,
-             &quot;SL.ranger&quot;,&quot;SL.bartMachine&quot;),
-  nsplits = 2
-)</code></pre>
-<pre class="r"><code>ate_out$res</code></pre>
-<pre><code>##      parameter      est        se    ci.ll    ci.ul pval
-## 1      E{Y(0)} 1.823575 0.2229954 1.386504 2.260646    0
-## 2      E{Y(1)} 5.176092 0.5453334 4.107238 6.244945    0
-## 3 E{Y(1)-Y(0)} 3.352517 0.5822570 2.211293 4.493741    0</code></pre>
+SL.libs &lt;- c(&quot;SL.glm&quot;,&quot;SL.glmnet&quot;,
+             &quot;SL.ranger&quot;,&quot;SL.bartMachine&quot;)
+
+aipw_sl &lt;- aipw_wrapper(Y=nhefs$wt82_71, 
+                        A=nhefs$qsmk,
+                        W.Q=confounds, 
+                        W.g=confounds,
+                        Q.SL.library=SL.libs, 
+                        g.SL.library=SL.libs,
+                        k_split=5,verbose=FALSE)</code></pre>
+<pre class="r"><code>aipw_sl$result</code></pre>
+<pre><code>##                  Estimate        SE  95% LCL  95% UCL    N
+## Risk of exposure 5.303231 0.4770684 4.368177 6.238285  403
+## Risk of control  1.777036 0.2188164 1.348156 2.205916 1163
+## Risk Difference  3.526195 0.5174314 2.512030 4.540361 1566</code></pre>
 <p>The results are very similar to those obtained by the previous methods.</p>
 </div>
 </div>
@@ -474,27 +477,27 @@ tmle.out &lt;- tmle(Y = nhefs$wt82_71,
                  A = nhefs$qsmk, 
                  W = confounds, 
                  family = &quot;gaussian&quot;, 
-                 V = 2,
+                 V = 5,
                  Q.SL.library = SL.libs, 
                  g.SL.library = SL.libs)</code></pre>
 <pre class="r"><code>tmle.out</code></pre>
 <pre><code>##  Additive Effect
-##    Parameter Estimate:  3.4154
-##    Estimated Variance:  0.21451
-##               p-value:  1.6509e-13
-##     95% Conf Interval: (2.5077, 4.3232) 
+##    Parameter Estimate:  3.3736
+##    Estimated Variance:  0.21307
+##               p-value:  2.6991e-13
+##     95% Conf Interval: (2.4689, 4.2784) 
 ## 
 ##  Additive Effect among the Treated
-##    Parameter Estimate:  3.4717
-##    Estimated Variance:  0.21948
-##               p-value:  1.2597e-13
-##     95% Conf Interval: (2.5534, 4.3899) 
+##    Parameter Estimate:  3.4073
+##    Estimated Variance:  0.22065
+##               p-value:  4.0526e-13
+##     95% Conf Interval: (2.4866, 4.328) 
 ## 
 ##  Additive Effect among the Controls
-##    Parameter Estimate:  3.4373
-##    Estimated Variance:  0.21962
-##               p-value:  2.2206e-13
-##     95% Conf Interval: (2.5188, 4.3559)</code></pre>
+##    Parameter Estimate:  3.359
+##    Estimated Variance:  0.21595
+##               p-value:  4.892e-13
+##     95% Conf Interval: (2.4482, 4.2698)</code></pre>
 <p>Again, results are very similar.</p>
 </div>
 </div>
@@ -518,6 +521,7 @@ tmle.out &lt;- tmle(Y = nhefs$wt82_71,
 <p>Greifer N (2023). WeightIt: Weighting for Covariate Balance in Observational Studies. <a href="https://ngreifer.github.io/WeightIt/" class="uri">https://ngreifer.github.io/WeightIt/</a>, <a href="https://github.com/ngreifer/WeightIt" class="uri">https://github.com/ngreifer/WeightIt</a>.</p>
 <p>Greifer N (2023). cobalt: Covariate Balance Tables and Plots. <a href="https://ngreifer.github.io/cobalt/" class="uri">https://ngreifer.github.io/cobalt/</a>, <a href="https://github.com/ngreifer/cobalt" class="uri">https://github.com/ngreifer/cobalt</a>.</p>
 <p>Michele Jonsson Funk and others, Doubly Robust Estimation of Causal Effects, American Journal of Epidemiology, Volume 173, Issue 7, 1 April 2011, Pages 761–767, <a href="https://doi.org/10.1093/aje/kwq439" class="uri">https://doi.org/10.1093/aje/kwq439</a></p>
+<p>Yongqi Zhong and others, AIPW: An R Package for Augmented Inverse Probability–Weighted Estimation of Average Causal Effects, American Journal of Epidemiology, Volume 190, Issue 12, December 2021, Pages 2690–2699, <a href="https://doi.org/10.1093/aje/kwab207" class="uri">https://doi.org/10.1093/aje/kwab207</a></p>
 <p>Van der Laan, M. J., Polley, E. C., &amp; Hubbard, A. E. (2007). Super learner. Statistical applications in genetics and molecular biology, 6(1).</p>
 <p>Luque‐Fernandez, M. A., Schomaker, M., Rachet, B., &amp; Schnitzer, M. E. (2018). Targeted maximum likelihood estimation for a binary treatment: A tutorial. Statistics in medicine, 37(16), 2530-2546.</p>
 </div>

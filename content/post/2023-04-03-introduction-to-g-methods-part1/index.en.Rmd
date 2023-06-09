@@ -25,9 +25,13 @@ h2 {
 }
 ```
 
+This is the first post in a series looking at g-methods and their doubly robust extensions for estimating causal effects in epidemiological research. This one is focused on time fixed treatments (or exposures) and the second will cover the case of time varying treatments. My main goal with writing this was to improve my own understanding and I'm hopeful that it might be useful to anyone else getting familiar with the field.
+
+Big thank you to Noah Greifer for some very helpful notes on a previous version. 
+
 ## Potential outcomes ##
 
-The goal of causally motivated epidemiology research is often to estimate the *average treatment effect* (ATE). For a binary treatment or exposure $A$ the ATE on the difference scale is defined as: 
+The goal of causally motivated epidemiology research is often to estimate the **average treatment effect** (ATE). For a binary treatment or exposure $A$ the ATE on the difference scale is defined as: 
 $$ E[Y_i^{a=1} - Y_i^{a=0}]$$
 
 Where $Y_i^{a=1}$ denotes the value of the outcome variable when treatment is given for individual $i$ and $Y_i^{a=0}$ denotes the value of the outcome variable when treatment is not given for individual $i$ (from here on, the $i$ subscript will be implicit). As individuals in a study only receive one of the two treatments on offer (they are either treated or untreated), only one these outcomes is actually observed for a given individual. For this reason, the outcomes $Y^{a=1}$ and $Y^{a=0}$ are often referred to as *potential* or *counterfactual* outcomes as they represent the value of the outcome variable in an individual had they, potentially counter-to-fact, received the treatment level $a$. 
@@ -45,7 +49,7 @@ The three core assumptions or conditions for linking observed data with potentia
 
 Consistency is the assumption that the potential outcome for an individual is equal to their observed outcome for the treatment they actually received. Formally, $Y^a = Y$ for individuals with $A = a$. In other words, the interventions in question must be linked to the observed data (at least some people must have been exposed to intervention $a$) and the intervention must be sufficiently well defined for the potential outcomes $Y^a$ to be well-defined. 
 
-Vague causal questions are often a challenge for consistency. Consider the potential outcome 'risk of stroke under 5 kilograms of weight loss by age 60.' Of course, one wouldn't expect that losing 5kg by becoming a heavy smoker would lead to an equivalent risk of stroke to losing 5kg by taking up an exercise regime. 
+Vague causal questions are often a challenge for consistency. Consider the potential outcome 'risk of stroke under 5 kilograms of weight loss by age 60.' Of course, one wouldn't expect that losing 5kg by becoming a heavy smoker would lead to an equivalent risk of stroke to losing 5kg by taking up an intensive exercise regime. 
 
 ###### *(Conditional) exhangeability* ######
 
@@ -57,13 +61,13 @@ Positivity implies that for all individuals, there is some (positive) chance of 
 
 When these three essential conditions are met (or approximately met) for a study, we may then estimate causal effects with the data we have at hand. One set of methods to do so are referred to as the *g-methods*, a set of methods for estimating treatment effects in the context of time fixed or time-varying treatments. 
 
-Ignoring a third method (g-estimation) which is not particularly well supported by popular software, the g-methods consists of two main strategies for estimating treatment effects: the *g-formula* and *inverse probability of treatment weighting* (IPTW). Each method will now be described with an applied example of a time-fixed treatment. 
+The g-methods consists of two main strategies for estimating treatment effects: the *g-formula* and *inverse probability of treatment weighting* (IPTW). (There is a third method, g-estimation, which is not particularly well supported by popular software so won't be discussed here. I apologise for the terminology, I'm not responsible!). Each method will now be introduced and applied with an example of a time-fixed treatment. 
 
 
 
 ## The g-formula ##
 
-Assuming exchangeability, positivity and consistency, the g-formula for a time fixed treatment is:
+Assuming exchangeability, positivity and consistency hold, the g-formula for a time fixed treatment is:
 
 $$
 E[Y^a] = \sum_l E[Y|A=a,L=l]Pr[L=l]
@@ -309,19 +313,16 @@ ip_weights <-
 
 As discussed by [Austin & Stuart (2015)](https://onlinelibrary.wiley.com/doi/10.1002/sim.6607), it is best practise to assess that the estimated weights are working as they should and that measured confounders are balanced across levels of treatment in the pseudopopulation produced by the weights. This can be easily checked using The *bal.tab* function of the [cobalt]("https://ngreifer.github.io/cobalt/index.html") package. 
 
-We'll use cobalt to assess balance in terms of standardised mean differences for continuous variables and proportion differences for binary variables. We'll also compare variances for continuous variables. 
+We'll use cobalt to assess balance in terms of standardised mean differences for continuous variables and proportion differences for binary variables. We'll also compute the Kolmogorov–Smirnov statistic, as Austin and Stuart recommend.
 
 
 ```{r balance}
 
 library(cobalt)
 
-balance <- 
-  bal.tab(ip_weights,
-          thresholds = c(m = .05, v = 1.5))
+bal.tab(ip_weights,
+        stats = c("m", "ks"))
 
-print(balance,
-      disp.thresholds = c(m = FALSE, v = FALSE))
 
 ```
 
@@ -425,32 +426,37 @@ Confidence intervals can be obtained by bootstrapping or based on the efficient 
 
 Previously, we have estimated causal effects using the standard parametric models linear and logistic regression (this was by no means a requirement, the g-formula and IPTW are compatible with other choices but these were chosen for ease of demonstration). A problem with these simple parametric models is that they tend to impose restrictions on the manner in which covariates are related to the treatment or outcome. For instance, they often assume there are no or few interactions and that continuous variables are linearly related to the outcome/treatment. Consequently, some amount of model mispecification is very likely in real settings. By contrast, highly flexible machine learning models impose few such restrictions and may be less prone to misspecification related bias.
 
-To venture into the world of machine learning, we will apply the AIPW estimator using the R package [npcausal](https://github.com/ehkennedy/npcausal). npcausal makes use of the [SuperLearner](https://cran.r-project.org/web/packages/SuperLearner/vignettes/Guide-to-SuperLearner.html#background) algorithm to estimate $\hat{Y_1}_i$, $\hat{Y_0}_i$, and $\hat{PS_i}$ in the above expression. SuperLearner is a stacking algorithm which uses several user specified machine learning algorithms, estimates their performance using cross-validation, and then computes an optimally weighted average of those models predictions (an "ensemble"). 
+To venture into the world of machine learning, we will apply the AIPW estimator using the R package [AIPW](https://academic.oup.com/aje/article/190/12/2690/6322284). AIPW makes use of the [SuperLearner](https://cran.r-project.org/web/packages/SuperLearner/vignettes/Guide-to-SuperLearner.html#background) algorithm to estimate $\hat{Y_1}_i$, $\hat{Y_0}_i$, and $\hat{PS_i}$ in the above expression. SuperLearner is a stacking algorithm which uses several user specified machine learning algorithms, estimates their performance using cross-validation, and then computes an optimally weighted average of those models predictions (an "ensemble"). 
 
-To estimate the effect of smoking cessation, we will use AIPW with generalised linear models, penalised maximum likelihood (glmnet), random forests, and Bayesian adaptive regression trees (BART) included in the SuperLearner algorithm. Standard errors are computed based on the efficient influence curve. 
+To estimate the effect of smoking cessation, we will use AIPW with generalised linear models, penalised maximum likelihood (glmnet), random forests, and Bayesian adaptive regression trees (BART) included in the SuperLearner algorithm. We'll run it across 6 cores as a speed up. Standard errors are computed based on the efficient influence curve. 
 
 ```{r AIPW package, message=FALSE, warning=FALSE, results=FALSE}
 
 library(SuperLearner)
-library(npcausal)
+library(AIPW)
+library(future.apply)
+
+plan(multisession, workers=6, gc=T)
 
 confounds <- 
   select(nhefs, sex, race, age, education, 
          smokeintensity, smokeyrs, exercise, active, wt71)
 
-ate_out <- 
-  ate(y = nhefs$wt82_71,
-  a = nhefs$qsmk,
-  x = confounds,
-  sl.lib = c("SL.glm","SL.glmnet",
-             "SL.ranger","SL.bartMachine"),
-  nsplits = 2
-)
+SL.libs <- c("SL.glm","SL.glmnet",
+             "SL.ranger","SL.bartMachine")
+
+aipw_sl <- aipw_wrapper(Y=nhefs$wt82_71, 
+                        A=nhefs$qsmk,
+                        W.Q=confounds, 
+                        W.g=confounds,
+                        Q.SL.library=SL.libs, 
+                        g.SL.library=SL.libs,
+                        k_split=5,verbose=FALSE)
 
 ```
 
-```{r TMLE results}
-ate_out$res
+```{r AIPW results}
+aipw_sl$result
 ```
 The results are very similar to those obtained by the previous methods. 
 
@@ -553,7 +559,7 @@ tmle.out <- tmle(Y = nhefs$wt82_71,
                  A = nhefs$qsmk, 
                  W = confounds, 
                  family = "gaussian", 
-                 V = 2,
+                 V = 5,
                  Q.SL.library = SL.libs, 
                  g.SL.library = SL.libs)
 
@@ -592,6 +598,8 @@ Greifer N (2023). WeightIt: Weighting for Covariate Balance in Observational Stu
 Greifer N (2023). cobalt: Covariate Balance Tables and Plots. https://ngreifer.github.io/cobalt/, https://github.com/ngreifer/cobalt. 
 
 Michele Jonsson Funk and others, Doubly Robust Estimation of Causal Effects, American Journal of Epidemiology, Volume 173, Issue 7, 1 April 2011, Pages 761–767, https://doi.org/10.1093/aje/kwq439
+
+Yongqi Zhong and others, AIPW: An R Package for Augmented Inverse Probability–Weighted Estimation of Average Causal Effects, American Journal of Epidemiology, Volume 190, Issue 12, December 2021, Pages 2690–2699, https://doi.org/10.1093/aje/kwab207
 
 Van der Laan, M. J., Polley, E. C., & Hubbard, A. E. (2007). Super learner. Statistical applications in genetics and molecular biology, 6(1).
 
