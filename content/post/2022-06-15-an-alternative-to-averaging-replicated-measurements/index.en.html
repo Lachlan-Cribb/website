@@ -34,8 +34,7 @@ projects: []
 \text{x}_{ij} &amp; \sim \mathcal N(\mu_{ij}, \sigma) \\
 \mu     _{ij} &amp; = \beta_1 \text{ID1}_{ij} + \beta_2 \text{ID2}_{ij} + \beta_3 \text{ID3}_{ij}... + \beta_n \text{IDn}_{ij}
 \end{align*}
-\]</span>
-Where <span class="math inline">\(\text{x}_{ij}\)</span> is the exposure measurement for the <span class="math inline">\(j^{th}\)</span> replicate for the <span class="math inline">\(i^{th}\)</span> participant, and <span class="math inline">\(\mu_{it}\)</span> represents the average exposure level for a given ID (participant). Notice that no information is shared between participants (each participant has their own intercept in the model). In other words, this model produces the so-called ‘no pooling’ estimate described by <a href="https://vulstats.ucsd.edu/pdf/Gelman.ch-12.basic-multilevel-models.pdf">Gelman and Hill</a>.</p>
+\]</span> Where <span class="math inline">\(\text{x}_{ij}\)</span> is the exposure measurement for the <span class="math inline">\(j^{th}\)</span> replicate for the <span class="math inline">\(i^{th}\)</span> participant, and <span class="math inline">\(\mu_{it}\)</span> represents the average exposure level for a given ID (participant). Notice that no information is shared between participants (each participant has their own intercept in the model). In other words, this model produces the so-called ‘no pooling’ estimate described by <a href="https://vulstats.ucsd.edu/pdf/Gelman.ch-12.basic-multilevel-models.pdf">Gelman and Hill</a>.</p>
 </div>
 <div id="approach-2-hierachical-model" class="section level4">
 <h4>Approach 2: hierachical model</h4>
@@ -47,7 +46,7 @@ x_{ij} &amp; \sim \mathcal N(\mu_{ij}, \sigma_e) \\
 u_{0i} &amp; \sim \mathcal N(0, \sigma_0) \\
 \end{align*}
 \]</span></p>
-<p>In this model, the estimated latent exposure level for each participant is a <em>compromise between the overall sample average <span class="math inline">\(\beta_0\)</span> and the no pooling estimate above</em>. How much each estimate is pulled closer to the overall mean (how much ‘partial pooling’) is determined by the standard deviation of the random intercept term <span class="math inline">\(\sigma_0\)</span>. As an extreme case, when <span class="math inline">\(\sigma_0\)</span> = 0, the estimate for each participant is simply the overall sample average. As <span class="math inline">\(\sigma_0\)</span> approaches <span class="math inline">\(\infty\)</span>, the no pooling estimate is returned (resulting in identical estimates to those from the first model described above). The hierarchical model uses the data to estimate <span class="math inline">\(\sigma_0\)</span>, attaining a compromise between those extremes.</p>
+<p>In this model, the estimated latent exposure level for each participant is a <em>compromise between the overall sample average</em> <span class="math inline">\(\beta_0\)</span> and the no pooling estimate above. How much each estimate is pulled closer to the overall mean (how much ‘partial pooling’) is determined by the standard deviation of the random intercept term <span class="math inline">\(\sigma_0\)</span>. As an extreme case, when <span class="math inline">\(\sigma_0\)</span> = 0, the estimate for each participant is simply the overall sample average. As <span class="math inline">\(\sigma_0\)</span> approaches <span class="math inline">\(\infty\)</span>, the no pooling estimate is returned (resulting in identical estimates to those from the first model described above). The hierarchical model uses the data to estimate <span class="math inline">\(\sigma_0\)</span>, attaining a compromise between those extremes.</p>
 </div>
 <div id="simulation" class="section level3">
 <h3>Simulation</h3>
@@ -91,8 +90,8 @@ d$x_hmod &lt;- predict(hmod, newdata = d)</code></pre>
   geom_vline(aes(xintercept = 0)) +
   geom_line() +
   theme_default()</code></pre>
-<p><img src="{{< blogdown/postref >}}index.en_files/figure-html/shrinkage_plot-1.png" width="672" />
-Note that t no pooling (x_average) estimates which are quite extreme are more aggressively pooled towards the overall mean than those which relatively more mean adjacent. The hierarchical model is using the data from the whole sample and in doing so determines that those particularly extreme observations are not to be trusted.</p>
+<p><img src="{{< blogdown/postref >}}index.en_files/figure-html/shrinkage_plot-1.png" width="672" /></p>
+<p>Note that t no pooling (x_average) estimates which are quite extreme are more aggressively pooled towards the overall mean than those which relatively more mean adjacent. The hierarchical model is using the data from the whole sample and in doing so determines that those particularly extreme observations are not to be trusted.</p>
 <p>To perform the simulation, I create a function to simulate data and extract the results of fitting the substantive model (y ~ x) using each approach.</p>
 <pre class="r"><code>sim_data &lt;- function(SEED, n, noise_sd){
   
@@ -192,8 +191,8 @@ out_0.8 &lt;-
   theme(axis.text.y = element_text(hjust = 0),
         legend.position = &quot;none&quot;) +
   theme_default()</code></pre>
-<p><img src="{{< blogdown/postref >}}index.en_files/figure-html/bias_2-1.png" width="672" />
-And a large sample size (n = 500)</p>
+<p><img src="{{< blogdown/postref >}}index.en_files/figure-html/bias_2-1.png" width="672" /></p>
+<p>And a large sample size (n = 500)</p>
 <pre class="r"><code>bind_rows(out_0.5, out_0.65, out_0.8) %&gt;% 
   filter(n == 500) %&gt;% 
   mutate(n = str_c(&quot;n==&quot;, n),
@@ -211,8 +210,8 @@ And a large sample size (n = 500)</p>
   theme(axis.text.y = element_text(hjust = 0),
         legend.position = &quot;none&quot;) +
   theme_default()</code></pre>
-<p><img src="{{< blogdown/postref >}}index.en_files/figure-html/bias_3-1.png" width="672" />
-In each scenario, the partial pooling hierarchical model approach produces estimates which are unbiased. The simple average method however seems to consistently underestimate the true relationship between x and y and this gets worse as the measurements get noisier (as ICC decreases).</p>
+<p><img src="{{< blogdown/postref >}}index.en_files/figure-html/bias_3-1.png" width="672" /></p>
+<p>In each scenario, the partial pooling hierarchical model approach produces estimates which are unbiased. The simple average method however seems to consistently underestimate the true relationship between x and y and this gets worse as the measurements get noisier (as ICC decreases).</p>
 </div>
 <div id="coverage" class="section level4">
 <h4>Coverage</h4>

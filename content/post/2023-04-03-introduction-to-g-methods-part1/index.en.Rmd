@@ -25,9 +25,9 @@ h2 {
 }
 ```
 
-This is the first post in a series looking at g-methods and their doubly robust extensions for estimating causal effects in epidemiological research. This one is focused on time fixed treatments (or exposures) and the second will cover the case of time varying treatments. My main goal with writing this was to improve my own understanding and I'm hopeful that it might be useful to anyone else getting familiar with the field.
+This is the first post in a series looking at g-methods and their doubly robust extensions for estimating causal effects in epidemiological research. This one is focused on time fixed treatments (or exposures) and the second will cover the case of time varying treatments. 
 
-Big thank you to Noah Greifer for some very helpful notes on a previous version. 
+Thank you to Noah Greifer and Cameron Patrick for some very helpful notes on a previous version 
 
 ## Potential outcomes ##
 
@@ -38,30 +38,32 @@ Where $Y_i^{a=1}$ denotes the value of the outcome variable when treatment is gi
 
 The ATE quantifies the average difference between the two potential outcomes. Put another way, it quantifies the average difference in the level of $Y$ in a hypothetical world in which everyone been treated ($a=1$) and the level of $Y$ in a hypothetical world in which no-one had been treated ($a=0$), all else being equal. It is the estimated effect of moving the entire population from untreated to treated.
 
-Given that the ATE is computed based on *potential*, rather than observed, outcomes, it begs the question: how can we estimate the ATE with real data? To do so, a few (mostly untestable) assumptions must be made. 
+Given that the ATE is defined in terms of *potential*, rather than observed, outcomes, it raises the question: how can we estimate the ATE with real data? To do so, a few (mostly untestable) assumptions must be made. 
 
 
-### Identification assumptions ###
+### Identifying conditions ###
 
-The three core assumptions or conditions for linking observed data with potential outcomes are as follows: 
+The conditions that allow us to make the leap from observed data to contrasts of potential outcomes are referred to as the 'identifying conditions'. A causal effect is said to be identified if it can be computed from an observed sample (allowing that that sample is sufficiently large that random variability is irrelevant). 
+
+The three core conditions are as follows:
 
 ###### *Consistency* ######
 
-Consistency is the assumption that the potential outcome for an individual is equal to their observed outcome for the treatment they actually received. Formally, $Y^a = Y$ for individuals with $A = a$. In other words, the interventions in question must be linked to the observed data (at least some people must have been exposed to intervention $a$) and the intervention must be sufficiently well defined for the potential outcomes $Y^a$ to be well-defined. 
+Consistency is the assumption that the potential outcome for an individual under treatment $a$ is equal to their observed outcome under treatment $a$. Formally, $Y^a = Y$ for individuals with $A = a$. In practice, what this assumption means is that the intervention under study must be sufficiently well-defined for potential outcomes to be well-defined. 
 
-Vague causal questions are often a challenge for consistency. Consider the potential outcome 'risk of stroke under 5 kilograms of weight loss by age 60.' Of course, one wouldn't expect that losing 5kg by becoming a heavy smoker would lead to an equivalent risk of stroke to losing 5kg by taking up an intensive exercise regime. 
+This might not seem like a high bar to clear but the implications of the consistency assumption are subtle and far reaching. [This excellent paper](https://pubmed.ncbi.nlm.nih.gov/18695657/) by Miguel Hernán draws out some of the issues. 
 
 ###### *(Conditional) exhangeability* ######
 
-Conditional exchangeability implies that, within levels of the measured confounding variables $L$, treated and untreated groups are exchangeable. In other words, treatment is randomly assigned within levels of the measured confounding variables. This is written formally as $Y^a \perp A|L$. I.e., potential outcomes are independent of the treatment received, conditional on confounders $L$. 
+Conditional exchangeability implies that, within levels of the measured confounding variables $L$, treated and untreated groups are exchangeable. In other words, treatment is effectively randomly assigned within levels of the measured confounding variables. This is written formally as $Y^a \perp A|L$. I.e., potential outcomes are independent of the treatment received, conditional on confounders $L$. 
 
 ###### *Positivity* ######
 
 Positivity implies that for all individuals, there is some (positive) chance of receiving each of the treatment levels. Formally, $Pr[A=a|L=l] > 0$ for all $Pr[L=l] > 0$. Positivity violations can be *random* or *structural*. Structural nonpositivity occurs when a subgroup cannot possibly be treated (or untreated). Random nonpositivity occurs when, by chance alone, some strata within $L$ are exclusively treated or untreated. 
 
-When these three essential conditions are met (or approximately met) for a study, we may then estimate causal effects with the data we have at hand. One set of methods to do so are referred to as the *g-methods*, a set of methods for estimating treatment effects in the context of time fixed or time-varying treatments. 
+When these three essential conditions are met (or approximately met) for a study, we may then estimate causal effects with the data we have at hand. One set of methods to do so are referred to as the *g-methods* (the g stands for 'generalised'), a set of methods for estimating treatment effects in the context of time fixed or time-varying treatments. 
 
-The g-methods consists of two main strategies for estimating treatment effects: the *g-formula* and *inverse probability of treatment weighting* (IPTW). (There is a third method, g-estimation, which is not particularly well supported by popular software so won't be discussed here. I apologise for the terminology, I'm not responsible!). Each method will now be introduced and applied with an example of a time-fixed treatment. 
+The g-methods consist of two main strategies for estimating treatment effects: the *g-formula* and *inverse probability of treatment weighting* (IPTW). (There is a third method, g-estimation, which is not particularly well supported by popular software so won't be discussed here. I apologise for the terminology, I'm not responsible!). Each method will now be introduced and applied with an example of a time-fixed treatment. 
 
 
 
@@ -82,14 +84,14 @@ E[Y^a] = \int E[Y|A=a,L=l] dF_L[L=l]
 $$
 Where $F_L$ is the joint CDF of the random variables in $L$. This is going to be painful to deal with, especially when multiple confounders are present. 
 
-Thankfully, we do not need to go the effort of obtaining $Pr[L=l]$ or $F_L[L=l]$. What we can do instead is estimate $E[Y|A=a,L=l]$ for the particular $l$ in the sample and then compute the average: 
+Thankfully, we do not need to obtain $Pr[L=l]$ or $F_L[L=l]$. What we can do instead is estimate $E[Y|A=a,L=l]$ for the particular $l$ in the sample and then compute the average: 
 $$
 E[Y^a] = \frac{1}{n}\sum_{i=1}^{n}\hat{E}[Y|A=a, L_i]
 $$
 
-The process of averaging over the distribution of confounders $L$ in the sample is known as *standardisation*. 
+The process of averaging over the distribution of confounders in the sample is known as *standardisation*. 
 
-The computational means for doing this are straightforward:
+The computational means for applying the g-formula are as follows:
 
 1) Fit a model (e.g., linear or logistic regression) for the conditional mean of the outcome given treatment and confounders
 2) Create two copies of the dataset. In the first, set treatment to 0 (untreated) and in the second, set treatment to 1 (treated)
@@ -103,7 +105,7 @@ When a parametric model is used to estimate the conditional mean of the outcome 
 
 ### The g-formula 'by hand' ###
 
-The NHEFS dataset available [here](https://www.hsph.harvard.edu/miguel-hernan/causal-inference-book/), used by Hernan and Robins in their book *Causal Inference*, will be used as an example. The goal is to estimate the effect of smoking cessation between baseline (1971) and follow-up (1982) on weight gain during the same interval. First, we'll load the data and fit a linear regression model (step 1). We fit the same model as Hernan and Robins, including confounding variables sex, race, age, education, smoking intensity, smoking years, exercise, activeness, and baseline weight. Departures from linearity are allowed for continuous variables by including a quadratic term with the poly() function. 
+The NHEFS dataset available [here](https://www.hsph.harvard.edu/miguel-hernan/causal-inference-book/), used by Hernán and Robins in their book *Causal Inference*, will be used as an example. The goal is to estimate the effect of smoking cessation between baseline (1971) and follow-up (1982) on weight gain during the same interval. First, we'll load the data and fit a linear regression model (step 1). We fit the same model as Hernan and Robins, including confounding variables sex, race, age, education, smoking intensity, smoking years, exercise, activeness, and baseline weight. Departures from linearity are allowed for continuous variables by including a quadratic term with the poly() function. 
 
 ```{r load NHEFS, warning=FALSE, message=FALSE}
 library(here)
@@ -152,8 +154,7 @@ print(paste("E[Y(1)] - E[Y(0)] = ",round(treatment_effect,2)))
 
 The estimated effect of smoking cessation, relative to no cessation, is a weight gain of 3.52 kg. 
 
-
-Confidence intervals can be obtained by bootstrapping.
+Confidence intervals can be obtained by bootstrapping. Note that less computationally costly options are also available, as demonstrated below.
 
 ```{r boostrapping standardisation, warning=FALSE, message=FALSE}
 
@@ -188,14 +189,11 @@ boot_out <- boot(data = nhefs,
 boot.ci(boot_out, conf = 0.95, type = "perc")
 ```
 
-
-
-
 ### R packages for the parametric g-formula ###
 
 ###### *marginaleffects* ######
 
-The R package [marginaleffects](https://vincentarelbundock.github.io/marginaleffects/) computes the ATE by standardisation, with confidence intervals obtained by the delta method: 
+The R package [marginaleffects](https://vincentarelbundock.github.io/marginaleffects/) computes the ATE by standardisation, with standard errors obtained by the delta method: 
 
 
 ```{r delta method}
@@ -220,7 +218,7 @@ summary(sim_est)
 
 The confidence intervals produced by all three methods are similar. 
 
-Beyond the core identification conditions described above, there is another essential assumption for the parametric g-formula to be unbiased. That is that the conditional mean outcome model is correctly specified. Even if you have meausured all important confounders you may still have bias if you have misspecified the model (e.g., missed important interactions or non-linearities). The method described in the next section relies on a different modelling assumption - that is, that the model for *treatment* is correctly specified. 
+Beyond the core identification conditions described above, there is another essential assumption for the parametric g-formula to be unbiased. That is that the conditional mean outcome model is correctly specified. Even if you have meausured all important confounders there may still be bias if you have misspecified the model (e.g., missed important interactions or non-linearities). The method described in the next section relies on a different modelling assumption - that is, that the model for *treatment* is correctly specified. 
 
 
 
@@ -228,7 +226,7 @@ Beyond the core identification conditions described above, there is another esse
 
 The aim of inverse probability of treatment weighting (IPTW) is to create a *pseudo-population* in which treatment $A$ and confounders $L$ are statistically independent. Provided identification conditions are satisfied, $E[Y^a]$ in the actual population is equal to $E_{ps}[Y|A=a]$ in the pseudo-population. The pseudo-population is created by weighting each individual by the inverse of the probability of receiving the treatment that they received. 
 
-For a binary treatment, the weights can be defined in terms of the *propensity score* (PS), which is the conditional probability of treatment given confounders $Pr[A=1|L=l]$. Weights $W^A$ are equal to $1/PS$ for those who received treatment and $1/(1-PS)$ for the untreated. 
+For a binary treatment, the weights can be defined in terms of the *propensity score* (PS), which is the conditional probability of treatment given confounders $Pr[A=1|L=l]$. Weights $W^A$ are equal to $1/PS$ for those who received treatment and $1/(1-PS)$ for the untreated. The reason the denominator is $1-PS$ for the untreated is that $1-PS$ is the conditional probability of being untreated, and we want to weight individuals by the inverse of the probability of receiving the treatment they *actually received*.  
 
 The steps for computing the ATE by IPTW are as follows:
 
@@ -237,7 +235,7 @@ The steps for computing the ATE by IPTW are as follows:
 3) Estimate the ATE by fitting a weighted regression model for the outcome
 
 
-Provided identifiability conditions are satisfied, the model fitted to the pseudo-population created in step 3 has the form: $$E[Y^a]=\beta_0 + \beta_1 a$$ 
+Provided identifying conditions are satisfied, the model fitted to the pseudo-population created in step 3 has the form: $$E[Y^a]=\beta_0 + \beta_1 a$$ 
 The parameter $\beta_1$ estimates the ATE. This is referred to as a *marginal structural model*. It is marginal because we are predicting a *marginal* potential outcome $E[Y^a]$ and structural as it is a model for a *counterfactual*, rather than fully observed, outcome.
 
 
@@ -344,7 +342,7 @@ summary(msm)
 
 ## Doubly robust estimation ##
 
-Key assumptions of the parametric g-formula and IPTW estimators are that the models for the outcome and treatment, respectively, are correctly specified. Doubly robust (DR) estimators, on the other hand, combine models for both treatment and the outcome and by doing so, give the analyst *two chances* to get the model right. That is, a DR estimator will be consistent so long as *at least one* of the outcome or treatment models are correctly specified.
+Key assumptions of the parametric g-formula and IPTW estimators are that the models for the outcome and treatment, respectively, are correctly specified. Doubly robust (DR) estimators, on the other hand, combine models for both treatment and the outcome and by doing so, give the analyst *two chances* to get the model right. That is, a DR estimator will be consistent (in the statistical sense of converging to the true parameter as $n\to\infty$) so long as *at least one* of the outcome or treatment models are correctly specified.
 
 While several DR estimators have been proposed, we will focus on augmented inverse probability weighting (AIPW) and targeted maximum likelihood estimation (TMLE), prominent examples which are well supported by current software.
 
@@ -372,7 +370,7 @@ The parts on the left side of each set of big brackets are identical to the IPTW
 
 ### AIPW 'by hand' ###
 
-Applying the AIPW estimator is straightforward. All of the required components, the propensity score and conditional mean of the outcome under treated and untreated, were estimated in previous steps. Nonetheless, we'll compute those components again for sake of completeness. 
+All of the required components for applying AIPW, the propensity score and conditional mean of the outcome under treated and untreated, were estimated in previous steps. Nonetheless, we'll estimate them again for sake of completeness. 
 
 First, fit the treatment and outcome models and compute $\hat{Y_1}_i$, $\hat{Y_0}_i$ and $\hat{PS}_i$:
 
@@ -477,6 +475,7 @@ $\hat{Y_1}^{new} = \hat{Y_1}^{old}_i + \frac{\hat{\epsilon_1}}{\hat{PS_i}}$
 $\hat{Y_0}^{new} = \hat{Y_0}^{old}_i + \frac{\hat{\epsilon_2}}{1-\hat{PS_i}}$
 6) Compute the ATE based on the updated estimates $\hat{Y_1}^{new}_i$, and $\hat{Y_0}^{new}_i$  
 
+The reason that $H1_i$ and $H0_i$ are referred to as 'clever covariates' is that they provide double robustness and allow for inference based on the efficient influence curve. 
 
 
 ### TMLE 'by hand' ###
@@ -584,6 +583,8 @@ In part 2, I will cover the case of time varying treatments and demonstrate how 
 
 
 ## References ##
+
+Hernán, M. A., & Taubman, S. L. (2008). Does obesity shorten life? The importance of well-defined interventions to answer causal questions. International journal of obesity, 32(3), S8-S14.
 
 Hernán, M. A., & Robins, J. M. (2010). Causal inference. 
 

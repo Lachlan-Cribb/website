@@ -23,16 +23,13 @@ projects: []
 
 Exposure variables are routinely measured in replicates in many medical research fields. In my field of epidemiology, for instance, blood biomarkers are often measured in duplicate. These variables are measured in replicates because their measurement is subject to technical and/or biological variability and by performing repeated measurements we can hopefully get a better picture of the latent 'true' level of the exposure.
 
+The problem is that it is not straightforward to include replicated exposure measurements as a predictor term in a regression model. So, when one wishes to use the exposure in a regression context, it is common for the replicated measurements to be averaged first. The resulting average is then used as a predictor in subsequent regression models. This averaging smooths away some noise - giving hopefully a more accurate picture of the latent level of the biomarker. While simple and intuitive, it occurred to me that an issue with this approach is that these averages only make use of data from a given individual. The biomarker values of the rest of the sample do not contribute in any way to the estimation of that average. This is probably not the best way to estimate the 'true' value of the biomarker. Surely it could be improved by 'borrowing information' from other individuals in the study to inform the latent exposure level of each?
 
-The problem is that it is not straightforward to include replicated exposure measurements as a predictor term in a regression model. So, when one wishes to use the exposure in a regression context, it is common for the replicated measurements to be averaged first. The resulting average is then used as a predictor in subsequent regression models. This averaging smooths away some noise - giving hopefully a more accurate picture of the latent level of the biomarker. While simple and intuitive, it occurred to me that an issue with this approach is that these averages only make use of data from a given individual. The biomarker values of the rest of the sample do not contribute in any way to the estimation of that average. This is probably not the best way to estimate the 'true' value of the biomarker. Surely it could be improved by 'borrowing information' from other individuals in the study to inform the latent exposure level of each? 
+One way of doing so would be to use a hierarchical model to estimate each subjects latent exposure level. With this model, we would make use of the full distribution of sample biomarker values to inform the estimation of each individual's latent average. That is, we would take advantage of partial pooling to adaptively 'shrink' each participants latent exposure level towards the overall sample average, and shrink more aggressively if their observations were relatively extreme.
 
+First, I briefly describe the two approaches (simple averaging and the hierarchical approach) and how they relate to eachother.
 
-One way of doing so would be to use a hierarchical model to estimate each subjects latent exposure level. With this model, we would make use of the full distribution of sample biomarker values to inform the estimation of each individual's latent average. That is, we would take advantage of partial pooling to adaptively 'shrink' each participants latent exposure level towards the overall sample average, and shrink more aggressively if their observations were relatively extreme. 
-
-First, I briefly describe the two approaches (simple averaging and the hierarchical approach) and how they relate to eachother. 
-
-
-#### Approach 1: simple averaging of replicates 
+#### Approach 1: simple averaging of replicates
 
 To see clearly how the averaging of replicates relates to the hierarchical model described later, consider the below linear model. Note that the predictions provided by this linear model are averaged replicates for each individual. In other words, this model estimates the latent exposure level for each participant simply by averaging their replicated observations.
 
@@ -41,15 +38,11 @@ $$
 \text{x}_{ij} & \sim \mathcal N(\mu_{ij}, \sigma) \\
 \mu     _{ij} & = \beta_1 \text{ID1}_{ij} + \beta_2 \text{ID2}_{ij} + \beta_3 \text{ID3}_{ij}... + \beta_n \text{IDn}_{ij}
 \end{align*}
-$$
-Where $\text{x}_{ij}$ is the exposure measurement for the $j^{th}$ replicate for the $i^{th}$ participant, and $\mu_{it}$ represents the average exposure level for a given ID (participant). Notice that no information is shared between participants (each participant has their own intercept in the model). In other words, this model produces the so-called 'no pooling' estimate described by [Gelman and Hill](https://vulstats.ucsd.edu/pdf/Gelman.ch-12.basic-multilevel-models.pdf).
+$$ Where $\text{x}_{ij}$ is the exposure measurement for the $j^{th}$ replicate for the $i^{th}$ participant, and $\mu_{it}$ represents the average exposure level for a given ID (participant). Notice that no information is shared between participants (each participant has their own intercept in the model). In other words, this model produces the so-called 'no pooling' estimate described by [Gelman and Hill](https://vulstats.ucsd.edu/pdf/Gelman.ch-12.basic-multilevel-models.pdf).
 
-  
-  
+#### Approach 2: hierachical model
 
-#### Approach 2: hierachical model 
-
-In the second approach, an overall global mean (intercept) is estimated and participant-level deviations from that overall mean are represented by an error term (i.e., a random intercept): 
+In the second approach, an overall global mean (intercept) is estimated and participant-level deviations from that overall mean are represented by an error term (i.e., a random intercept):
 
 $$
 \begin{align*}
@@ -59,15 +52,13 @@ u_{0i} & \sim \mathcal N(0, \sigma_0) \\
 \end{align*}
 $$
 
-In this model, the estimated latent exposure level for each participant is a *compromise between the overall sample average $\beta_0$ and the no pooling estimate above*. How much each estimate is pulled closer to the overall mean (how much 'partial pooling') is determined by the standard deviation of the random intercept term $\sigma_0$. As an extreme case, when $\sigma_0$ = 0, the estimate for each participant is simply the overall sample average. As $\sigma_0$ approaches $\infty$, the no pooling estimate is returned (resulting in identical estimates to those from the first model described above). The hierarchical model uses the data to estimate $\sigma_0$, attaining a compromise between those extremes. 
+In this model, the estimated latent exposure level for each participant is a *compromise between the overall sample average* $\beta_0$ and the no pooling estimate above. How much each estimate is pulled closer to the overall mean (how much 'partial pooling') is determined by the standard deviation of the random intercept term $\sigma_0$. As an extreme case, when $\sigma_0$ = 0, the estimate for each participant is simply the overall sample average. As $\sigma_0$ approaches $\infty$, the no pooling estimate is returned (resulting in identical estimates to those from the first model described above). The hierarchical model uses the data to estimate $\sigma_0$, attaining a compromise between those extremes.
 
-  
-  
-### Simulation 
+### Simulation
 
 For this post, I will see how these two methods compare in a simulation study under a few different scenarios. In the simulation, the effect of a unit increase in the latent 'true' exposure on the outcome will be set to 0.50. We will determine how well each of the two methods are able to reproduce that correct regression coefficient.
 
-First, to demonstrate the differences between the approaches, I will create a fake dataset (n = 100) to test them both. The intraclass correlation (ICC) of the replicated exposure measurements is set to 0.65. 
+First, to demonstrate the differences between the approaches, I will create a fake dataset (n = 100) to test them both. The intraclass correlation (ICC) of the replicated exposure measurements is set to 0.65.
 
 ```{r test, warning=FALSE, message=FALSE}
 
@@ -102,7 +93,7 @@ d$x_hmod <- predict(hmod, newdata = d)
   
 ```
 
-This plot demonstrates that the estimated exposure level from the hierarchical model (x_hmod) are shrunk towards the overall sample mean, relative to the no-pooling estimate (x_average). 
+This plot demonstrates that the estimated exposure level from the hierarchical model (x_hmod) are shrunk towards the overall sample mean, relative to the no-pooling estimate (x_average).
 
 ```{r shrinkage_plot}
 
@@ -116,10 +107,10 @@ d %>%
   geom_line() +
   theme_default()
 ```
-Note that t no pooling (x_average) estimates which are quite extreme are more aggressively pooled towards the overall mean than those which relatively more mean adjacent. The hierarchical model is using the data from the whole sample and in doing so determines that those particularly extreme observations are not to be trusted. 
 
+Note that t no pooling (x_average) estimates which are quite extreme are more aggressively pooled towards the overall mean than those which relatively more mean adjacent. The hierarchical model is using the data from the whole sample and in doing so determines that those particularly extreme observations are not to be trusted.
 
-To perform the simulation, I create a function to simulate data and extract the results of fitting the substantive model (y ~ x) using each approach. 
+To perform the simulation, I create a function to simulate data and extract the results of fitting the substantive model (y \~ x) using each approach.
 
 ```{r sim_data}
 
@@ -154,7 +145,7 @@ sim_data <- function(SEED, n, noise_sd){
 }
 ```
 
-Now, the simulation is performed for a combination of sample sizes (25, 100, 500) and ICC (0.5, 0.65, 0.80). The latter representing quite poor, reasonable, and good reliability, respectively. 
+Now, the simulation is performed for a combination of sample sizes (25, 100, 500) and ICC (0.5, 0.65, 0.80). The latter representing quite poor, reasonable, and good reliability, respectively.
 
 ```{r run_sims, warning=FALSE, message=FALSE}
 
@@ -187,13 +178,11 @@ out_0.8 <-
 
 ```
 
-  
-  
-### Results 
+### Results
 
-#### Bias 
+#### Bias
 
-Bias in the estimated regression coefficient for the relationship between exposure x and outcome y is presented first for small sample sizes (n = 25). 
+Bias in the estimated regression coefficient for the relationship between exposure x and outcome y is presented first for small sample sizes (n = 25).
 
 ```{r bias_1, warning=FALSE}
 
@@ -239,6 +228,7 @@ bind_rows(out_0.5, out_0.65, out_0.8) %>%
         legend.position = "none") +
   theme_default()
 ```
+
 And a large sample size (n = 500)
 
 ```{r bias_3, warning=FALSE}
@@ -261,13 +251,12 @@ bind_rows(out_0.5, out_0.65, out_0.8) %>%
         legend.position = "none") +
   theme_default()
 ```
-In each scenario, the partial pooling hierarchical model approach produces estimates which are unbiased. The simple average method however seems to consistently underestimate the true relationship between x and y and this gets worse as the measurements get noisier (as ICC decreases). 
 
-  
-  
-#### Coverage 
+In each scenario, the partial pooling hierarchical model approach produces estimates which are unbiased. The simple average method however seems to consistently underestimate the true relationship between x and y and this gets worse as the measurements get noisier (as ICC decreases).
 
-Next, the coverage properties of the 95% confidence intervals are investigated to determine how often they actually cover the true regression coefficient across simulated datasets. Horizontal lines are added at 93.5% and 96.5% to cover a reasonable margin of error. 
+#### Coverage
+
+Next, the coverage properties of the 95% confidence intervals are investigated to determine how often they actually cover the true regression coefficient across simulated datasets. Horizontal lines are added at 93.5% and 96.5% to cover a reasonable margin of error.
 
 ```{r coverage}
 
@@ -291,15 +280,12 @@ bind_rows(out_0.5, out_0.65, out_0.8) %>%
 
 ```
 
+The partial pooling approach produces estimates with approximately nominal coverage, though there is slight undercoverage in larger samples with a low ICC. On the other hand, the coverage properties of the simple averaging approach can be very poor, especially in larger samples and/or when the ICC is low.
 
-The partial pooling approach produces estimates with approximately nominal coverage, though there is slight undercoverage in larger samples with a low ICC. On the other hand, the coverage properties of the simple averaging approach can be very poor, especially in larger samples and/or when the ICC is low. 
-
-  
-  
 ### Conclusion
 
-Using a hierarchical model to estimate the latent value of an exposure variable from replicated measurements substantially outperforms the method of simply averaging replicates. And this comes at the cost of little increase in analysis complexity or interpretability. 
+Using a hierarchical model to estimate the latent value of an exposure variable from replicated measurements substantially outperforms the method of simply averaging replicates. And this comes at the cost of little increase in analysis complexity or interpretability.
 
-Importantly, both of these approaches share one problem. In each case, *model parameters* (estimates from either a linear model or hierarchical linear model) are, incorrectly, treated as if they were data. Treating them this way ignores the uncertainty associated with these parameters. Consequently, we might expect these models to produce overconfident inferences. Nevertheless, this did not seem to have substantial consequences here, at least for the hierarchical approach. A more correct approach may be to instead estimate each of the parts of the model (estimate latent x and regress y on latent x) simultaneously in a more sophisticated hierarchical model. Such a model could be fit in Stan for instance, where each of the submodels, the model for the latent exposure and the outcome model, are fitted within the same Markov Chain. 
+Importantly, both of these approaches share one problem. In each case, *model parameters* (estimates from either a linear model or hierarchical linear model) are, incorrectly, treated as if they were data. Treating them this way ignores the uncertainty associated with these parameters. Consequently, we might expect these models to produce overconfident inferences. Nevertheless, this did not seem to have substantial consequences here, at least for the hierarchical approach. A more correct approach may be to instead estimate each of the parts of the model (estimate latent x and regress y on latent x) simultaneously in a more sophisticated hierarchical model. Such a model could be fit in Stan for instance, where each of the submodels, the model for the latent exposure and the outcome model, are fitted within the same Markov Chain.
 
-Lastly, this simulation doesn't cover many realistic scenarios. In practise, measurement error may not be so well behaved and the true distribution will be unknown. Nonetheless, I find it hard to imagine a scenario in which making full use of the sample data via a hierarchical model is not at least as good as the more common averaging approach. 
+Lastly, this simulation doesn't cover many realistic scenarios. In practise, measurement error may not be so well behaved and the true distribution will be unknown. Nonetheless, I find it hard to imagine a scenario in which making full use of the sample data via a hierarchical model is not at least as good as the more common averaging approach.
